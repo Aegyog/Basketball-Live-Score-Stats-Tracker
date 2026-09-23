@@ -1,8 +1,5 @@
 # Courtside Ledger
 
-[![Made with AI](https://img.shields.io/badge/Made_with-AI_assistance-24469b)](AI-USAGE.md)
-[![Week 1](https://img.shields.io/badge/status-Week_1_demo-cb4b0b)](REPORT.md)
-
 Courtside Ledger is a basketball live score and player statistics tracker for local leagues, barangay tournaments, and scorekeepers who currently rely on paper. It keeps the team score, individual player totals, quarter, and play log together in one record.
 
 The Week 1 build is a responsive React demo. It stores games in the current browser with `localStorage`; the Express and PostgreSQL implementation is the next increment.
