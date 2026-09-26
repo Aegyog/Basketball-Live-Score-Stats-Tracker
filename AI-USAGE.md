@@ -1,52 +1,77 @@
 # AI usage
 
-This project was built with AI assistance. This file records what was requested, what was kept or changed, and the commits that contain the work. It will be updated throughout all three finals weeks.
+This project was built with AI assistance. This file records what was requested, what was kept or changed, and what still requires personal review. Week 2 commit links are intentionally pending because the files have not been committed or pushed yet.
 
 ## 1. How I used AI
 
-### 2026-09-23 - Requirements and Week 1 scope
+### 2026-09-23 - Requirements, React screens, and demo data
 
 - **Tool:** OpenAI Codex
-- **What I asked for:** Read the finals lesson, templates, and rubrics; inspect the new project repository; and determine what had to be finished for the three Week 1 submissions.
-- **What it gave back:** A requirements checklist and a plan to start from the official class template, deliver the client in demo mode first, and postpone the basketball database and real routes to the next increment.
-- **What I kept, what I changed, and why:** I kept the template structure and demo-first scope because the class starter explicitly separates the Week 1 client from the later server integration. The initial idea of working on the entire backend immediately was dropped after the starter instructions were read.
+- **What I asked for:** Read the finals requirements and build the first usable Courtside Ledger increment from the class template.
+- **What it produced:** The five-screen React flow, reusable components, mock and HTTP adapters, browser persistence, documentation, and deployment workflow.
+- **What I kept or changed:** I kept the adapter boundary and clearly labelled demo mode. The first end-game handler was corrected so navigation happens only after a successful update.
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/9b519a6>
 
-### 2026-09-23 - React screens and components
+### 2026-09-26 - PostgreSQL schema and Express game API
 
 - **Tool:** OpenAI Codex
-- **What I asked for:** Build a minimalist, black-text basketball scoring interface based on the approved proposal, wireframes, and design system.
-- **What it gave back:** A dashboard, game setup screen, live tracker, history, and summary, with reusable header, game card, scoreboard, roster, and play-log components.
-- **What I kept, what I changed, and why:** I kept the five-screen flow and reusable component split. I also kept the restrained navy/orange palette and black body text because it matches the earlier planning documents and remains readable on mobile.
-- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/9b519a6>
+- **What I asked for:** Complete the Week 2 backend locally without committing or pushing it.
+- **What it produced:** Tables for games, teams, players, and plays; server validation; the seven game endpoints; and transactions for creating a game, recording a play, and undoing a play.
+- **What I kept or changed:** I kept the database structure and transaction logic. I also asked for the API to match the existing React client instead of changing the interface again.
+- **Commit:** Pending review and push. Replace with the final commit URL.
 
-### 2026-09-23 - Mock data boundary and browser persistence
+### 2026-09-26 - Tests, security review, and documentation
 
 - **Tool:** OpenAI Codex
-- **What I asked for:** Make Week 1 usable without pretending that the Express/PostgreSQL backend was complete, while keeping the React code ready for a real API.
-- **What it gave back:** Matching mock and HTTP adapters, seeded games, `localStorage` persistence, stat recording, undo, quarter advancement, and game completion.
-- **What I kept, what I changed, and why:** I kept the adapter boundary because the screens do not need to change when the real server is connected. Demo mode is clearly labeled so a reviewer is not misled about where the data is stored.
-- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/9b519a6>
+- **What I asked for:** Verify the local increment and complete the Week 2 report, documentation update, security checklist, and reflection journal.
+- **What it produced:** Validation tests, build checks, a full README, a security checklist, a revised report, and a Week 2 journal draft.
+- **What I kept or changed:** I installed and configured PostgreSQL locally, then used Codex to run the database and API checks. The documents now record that the local integration passed while still listing the missing access control and pending commit links.
+- **Commit:** Pending review and push. Replace with the final commit URL.
 
 ## 2. Where the AI got it wrong
 
 ### Case 1 - Finishing a game after a failed request
 
-- **What it gave me:** The first `handleFinish` implementation always switched to the summary view immediately after calling the mutation helper.
-- **What was wrong with it:** If the API call failed, the error was displayed but the screen still changed, making the game look final when it was not. That would be especially confusing after the real server is connected.
-- **What I did instead:** The mutation helper now returns `true` on success and `false` on failure. `handleFinish` only changes the view when the update succeeds.
+- **Initial output:** The first Week 1 handler switched to the summary immediately after attempting to finish a game.
+- **Problem:** A failed save still looked successful in the interface.
+- **Fix:** The mutation helper reports success, and the summary opens only after a successful update.
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/9b519a6>
 
-Two more genuine cases will be added as the server and database are implemented. They are not invented in advance.
+### Case 2 - One amount rule for every statistic
+
+- **Initial output:** The first Week 2 validation design treated every amount from 1 to 3 as valid for every statistic.
+- **Problem:** A request could record two rebounds or three steals as one event, which does not match the interface or the audit trail.
+- **Fix:** Both `validation.js` and the `plays` table constraint allow 1–3 only for points and require exactly 1 for rebounds, assists, steals, and blocks.
+- **Commit:** Pending review and push.
+
+### Case 3 - Route-method mismatch
+
+- **Initial output:** The Week 1 README listed the quarter and finish routes as `POST` while the existing HTTP adapter used `PATCH`.
+- **Problem:** Implementing the README literally would make the real client receive `404` responses.
+- **Fix:** The Week 2 API and README now use `PATCH`, matching `client/src/api/httpApi.js`.
+- **Commit:** Pending review and push.
+
+### Case 4 - PostgreSQL 18 seed timestamp error
+
+- **Initial output:** The first seed script used timestamp text values inside a `UNION` query.
+- **Problem:** PostgreSQL 18 treated the values as text, so inserting them into the `TIMESTAMPTZ` column failed.
+- **Fix:** The seed timestamps were changed to explicit `TIMESTAMPTZ` values. The schema and seed scripts then completed successfully.
+- **Commit:** Pending review and push.
 
 ## 3. Who wrote what
 
 ### Written by me
 
-No meaningful self-authored code is claimed for Week 1. Codex produced most of the scaffold and client implementation. During Week 2 I need to write and explain at least one substantial part myself, such as the basketball validation rules, a safe PostgreSQL transaction, or an Express route, so the final project meets the course's 20% self-authored requirement.
+No substantial student-authored code is claimed yet. The current Week 1 and Week 2 implementation is heavily AI-assisted. Before final submission, I still need to write, test, and explain a meaningful portion myself and add its exact file and commit link here so the project satisfies the 20% self-authored requirement.
 
-### The AI-written part I understand best
+### Local setup I completed
 
-- **File:** `client/src/api/mockApi.js`
-- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/9b519a6>
-- **What it does and why we kept it:** This module gives the React app the same asynchronous functions that the HTTP adapter exposes. Each update loads the saved games, creates a new game object instead of directly mutating React state, recalculates the relevant player and team score, saves the result to `localStorage`, and returns the updated game. The shared function names let the app switch to real HTTP requests later through one environment variable instead of rewriting the screens.
+I installed PostgreSQL 18, created the `basketball_tracker` database, corrected the local environment settings, and checked that the connection worked. I also took part in reviewing the successful schema, seed, test, and API results. This is real setup and testing work, but I am not counting it as the required student-authored code.
+
+### AI-written parts I reviewed
+
+- **Files:** `server/db/schema.sql`, `server/gamesRepo.js`, `server/validation.js`
+- **Commit:** Pending review and push.
+- **What they do:** The schema separates games, teams, players, and play events. The repository changes those database rows into the object shape used by React. Recording and undoing a play updates the game, player totals, and play history together. Validation rejects bad game and play requests before they reach PostgreSQL.
+
+Reviewing a description is not the same as authoring the code. I need to be able to explain these files and add my own tested contribution before claiming the badge requirement is complete.

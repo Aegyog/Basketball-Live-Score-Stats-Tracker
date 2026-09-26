@@ -1,39 +1,35 @@
 # Project Increment Report
 
-## Week of: 2026-09-23
+## Week of: 2026-09-26
 
 ## What changed this week
 
-- Started the project from the official full-stack class template so the repository has separate `client/` and `server/` folders, environment examples, and a GitHub Pages workflow.
-- Replaced the sample React client with the Courtside Ledger basketball tracker.
-- Added five working views: dashboard, new-game setup, live tracker, game history, and final-game summary.
-- Split repeated UI into reusable components for the header, game cards, scoreboard, team rosters, demo notice, and recent-play log.
-- Added the seven planned stat actions: 1, 2, or 3 points, rebound, assist, steal, and block.
-- Added synchronized team totals, player totals, the current quarter, a recent-play audit trail, undo, game completion, and seeded demo data.
-- Added matching mock and HTTP API modules. Week 1 uses the mock module and stores games in `localStorage`; the React screens can later switch to Express with `VITE_USE_MOCK_API=false`.
-- Added responsive styling and keyboard-visible focus states.
-- Added GitHub Pages deployment configuration, environment examples, current README documentation, and the first `AI-USAGE.md` entries.
+- Connected the basketball tracker to a local Express and PostgreSQL backend instead of saving everything only in the browser.
+- Replaced the old sample sightings API with basketball routes for viewing games, creating a game, recording or undoing a play, moving to the next quarter, and finishing a game.
+- Added PostgreSQL tables for games, teams, players, and plays, including their relationships and basic data rules.
+- Added server-side validation so invalid game and play data is rejected before it reaches the database.
+- Used database transactions for creating games, recording plays, and undoing plays so the score, player stats, and play history stay consistent.
+- Added sample data and validation tests.
+- Installed PostgreSQL 18 locally, created the `basketball_tracker` database, ran the schema and seed files, and checked the complete API workflow.
+- Updated the README, screenshot, security checklist, AI disclosure, and reflection journal.
 
-The main implementation is backed by commit [`9b519a6`](https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/9b519a6).
+Implementation commit: `[add the commit link after I review, commit, and push the local changes]`
 
-## Why
+## Why I made these changes
 
-The approved project replaces paper score sheets for local basketball games. The Week 1 goal was to make the primary scorekeeper flow usable before adding persistence on the server. Building against a mock adapter lets the interface and state transitions be tested now while preserving the same function boundary that the Express API will use later.
+The Week 1 version worked as a browser demo, but its data was only stored in `localStorage`. My Week 2 goal was to make the same app work with a real local database. The public GitHub Pages version can still use demo mode because a local PostgreSQL database cannot be reached from the public website.
 
-## What broke or what I got stuck on
+## Problems I ran into
 
-- The first production build could not start `esbuild` under the restricted workspace process. Running the same `npm run build` with normal project access succeeded, so this was an environment restriction rather than a code error.
-- The first end-game handler moved to the summary screen even when the update failed. I changed the mutation helper to report success and only navigate after a successful finish.
-- The repository started with only a one-line README, so the official template and all project structure had to be added before feature work could be documented.
-- I could visually verify the dashboard and live tracker, but I have not yet committed a real running-app screenshot to the README.
-- The server folder still contains the official sample resource. I left that visible and documented instead of claiming the basketball backend was complete.
+- The first database connection failed because `server/.env` still contained the example password. I changed the active `DATABASE_URL` to use my real local PostgreSQL password without placing it in a tracked file.
+- The seed script failed on PostgreSQL 18 because timestamp text inside a `UNION` was being treated as plain text. With Codex's help, the timestamps were changed to explicit `TIMESTAMPTZ` values.
+- The Week 1 README said two routes used `POST`, but the React HTTP adapter used `PATCH`. The API and documentation now use the same methods.
+- The first validation rule allowed amounts of 2 or 3 for every statistic. It now allows 1–3 only for points and exactly 1 for rebounds, assists, steals, and blocks.
+- The API does not have login or access control, so it should remain local until that security issue is handled.
 
-## What is left
+## What is left to do
 
-- Design the PostgreSQL basketball schema for games, teams, players, and plays.
-- Replace the sample Express routes and repository with the documented `/api/games` routes.
-- Add server-side validation, transactions, and API tests for recording and undoing plays.
-- Connect the React HTTP adapter to the deployed API and test CORS and error states.
-- Add at least one substantial self-authored part and document it for the 20% course requirement.
-- Commit real dashboard and live-tracker screenshots.
-- Enable GitHub Pages with GitHub Actions and verify the public live link.
+- Review the backend files until I can explain how the schema, validation, and transactions work.
+- Write and test a meaningful part myself so I can meet the required 20% student-authored code rule.
+- If I deploy the API later, add access control and use a database account with limited permissions.
+- Commit and push the reviewed files myself, replace the pending commit link, check the public links, and submit them in Canvas.

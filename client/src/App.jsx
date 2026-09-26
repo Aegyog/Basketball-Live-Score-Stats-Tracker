@@ -7,6 +7,7 @@ import {
   recordPlay,
   resetDemoData,
   undoLastPlay,
+  USING_MOCK_API,
 } from './api'
 import AppHeader from './components/AppHeader.jsx'
 import DemoNotice from './components/DemoNotice.jsx'
@@ -130,7 +131,7 @@ export default function App() {
         <main className="content">
           <section className="hero">
             <div><span className="eyebrow">Live basketball statistics</span><h1>Every play. Every player.<br />One accurate record.</h1><p>Replace paper score sheets with a focused tracker for local leagues and barangay tournaments.</p><button className="button large" onClick={() => navigate('setup')}>Start a new game</button></div>
-            <div className="hero-card" aria-label="Week one project status"><span>Week 1</span><strong>Interface ready</strong><p>Dashboard, setup, live scoring, history, and undo now work in demo mode.</p><div><b>5</b><small>screens</small><b>7</b><small>stat actions</small></div></div>
+            <div className="hero-card" aria-label="Week two project status"><span>Week 2</span><strong>{USING_MOCK_API ? 'Demo mode active' : 'Full stack connected'}</strong><p>The same scoring interface can now use either browser storage or the Express and PostgreSQL API.</p><div><b>5</b><small>screens</small><b>7</b><small>stat actions</small></div></div>
           </section>
           <DemoNotice />
           {status === 'loading' && <p className="loading">Loading games...</p>}
@@ -174,7 +175,7 @@ export default function App() {
         </main>
       )}
 
-      <footer className="site-footer"><span>Courtside Ledger</span><span>Week 1 demo · React + localStorage</span></footer>
+      <footer className="site-footer"><span>Courtside Ledger</span><span>{USING_MOCK_API ? 'Demo · React + localStorage' : 'Full stack · React + Express + PostgreSQL'}</span></footer>
     </div>
   )
 }
