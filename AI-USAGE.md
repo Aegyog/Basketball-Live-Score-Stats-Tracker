@@ -1,6 +1,6 @@
 # AI usage
 
-This project was built with AI assistance. This file records what was requested, what was kept or changed, and what still requires personal review. Week 2 commit links are intentionally pending because the files have not been committed or pushed yet.
+This project was built with AI assistance. This file records what was requested, what was kept or changed, and what still requires personal review.
 
 ## 1. How I used AI
 
@@ -18,15 +18,15 @@ This project was built with AI assistance. This file records what was requested,
 - **What I asked for:** Complete the Week 2 backend locally without committing or pushing it.
 - **What it produced:** Tables for games, teams, players, and plays; server validation; the seven game endpoints; and transactions for creating a game, recording a play, and undoing a play.
 - **What I kept or changed:** I kept the database structure and transaction logic. I also asked for the API to match the existing React client instead of changing the interface again.
-- **Commit:** Pending review and push. Replace with the final commit URL.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
 ### 2026-09-26 - Tests, security review, and documentation
 
 - **Tool:** OpenAI Codex
 - **What I asked for:** Verify the local increment and complete the Week 2 report, documentation update, security checklist, and reflection journal.
 - **What it produced:** Validation tests, build checks, a full README, a security checklist, a revised report, and a Week 2 journal draft.
-- **What I kept or changed:** I installed and configured PostgreSQL locally, then used Codex to run the database and API checks. The documents now record that the local integration passed while still listing the missing access control and pending commit links.
-- **Commit:** Pending review and push. Replace with the final commit URL.
+- **What I kept or changed:** I installed and configured PostgreSQL locally, then used Codex to run the database and API checks. The documents now record that the local integration passed while still listing the missing access control and commit links.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
 ## 2. Where the AI got it wrong
 
@@ -42,21 +42,21 @@ This project was built with AI assistance. This file records what was requested,
 - **Initial output:** The first Week 2 validation design treated every amount from 1 to 3 as valid for every statistic.
 - **Problem:** A request could record two rebounds or three steals as one event, which does not match the interface or the audit trail.
 - **Fix:** Both `validation.js` and the `plays` table constraint allow 1–3 only for points and require exactly 1 for rebounds, assists, steals, and blocks.
-- **Commit:** Pending review and push.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
 ### Case 3 - Route-method mismatch
 
 - **Initial output:** The Week 1 README listed the quarter and finish routes as `POST` while the existing HTTP adapter used `PATCH`.
 - **Problem:** Implementing the README literally would make the real client receive `404` responses.
 - **Fix:** The Week 2 API and README now use `PATCH`, matching `client/src/api/httpApi.js`.
-- **Commit:** Pending review and push.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
 ### Case 4 - PostgreSQL 18 seed timestamp error
 
 - **Initial output:** The first seed script used timestamp text values inside a `UNION` query.
 - **Problem:** PostgreSQL 18 treated the values as text, so inserting them into the `TIMESTAMPTZ` column failed.
 - **Fix:** The seed timestamps were changed to explicit `TIMESTAMPTZ` values. The schema and seed scripts then completed successfully.
-- **Commit:** Pending review and push.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
 ## 3. Who wrote what
 
@@ -71,7 +71,7 @@ I installed PostgreSQL 18, created the `basketball_tracker` database, corrected 
 ### AI-written parts I reviewed
 
 - **Files:** `server/db/schema.sql`, `server/gamesRepo.js`, `server/validation.js`
-- **Commit:** Pending review and push.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 - **What they do:** The schema separates games, teams, players, and play events. The repository changes those database rows into the object shape used by React. Recording and undoing a play updates the game, player totals, and play history together. Validation rejects bad game and play requests before they reach PostgreSQL.
 
 Reviewing a description is not the same as authoring the code. I need to be able to explain these files and add my own tested contribution before claiming the badge requirement is complete.

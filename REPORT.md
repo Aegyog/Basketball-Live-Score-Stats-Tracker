@@ -13,7 +13,7 @@
 - Installed PostgreSQL 18 locally, created the `basketball_tracker` database, ran the schema and seed files, and checked the complete API workflow.
 - Updated the README, screenshot, security checklist, AI disclosure, and reflection journal.
 
-Implementation commit: `[add the commit link after I review, commit, and push the local changes]`
+Implementation commit: <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
 ## Why I made these changes
 
@@ -32,4 +32,4 @@ The Week 1 version worked as a browser demo, but its data was only stored in `lo
 - Review the backend files until I can explain how the schema, validation, and transactions work.
 - Write and test a meaningful part myself so I can meet the required 20% student-authored code rule.
 - If I deploy the API later, add access control and use a database account with limited permissions.
-- Commit and push the reviewed files myself, replace the pending commit link, check the public links, and submit them in Canvas.
+- Check the public GitHub links after the push and submit them in Canvas.
