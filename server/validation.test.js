@@ -1,20 +1,21 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseId, validateGame, validatePlay } from './validation.js'
+import { parseId, validateGame, validateLeague, validateLeagueTeam, validatePlay } from './validation.js'
 
 const validGame = {
   date: '2026-09-26',
   venue: 'HAU Gym',
   homeName: 'Blue Hawks',
   awayName: 'Orange Lions',
-  homePlayers: ['Ana', 'Bea'],
-  awayPlayers: ['Carlo', 'Diego'],
+  homePlayers: [{ number: 7, name: 'Ana' }, { number: 12, name: 'Bea' }],
+  awayPlayers: [{ number: 4, name: 'Carlo' }, { number: 9, name: 'Diego' }],
 }
 
 test('validateGame accepts and trims a complete game', () => {
   const result = validateGame({ ...validGame, venue: '  HAU Gym  ' })
   assert.deepEqual(result.errors, [])
   assert.equal(result.value.venue, 'HAU Gym')
+  assert.deepEqual(result.value.homePlayers[0], { number: 7, name: 'Ana' })
 })
 
 test('validateGame rejects invalid dates, duplicate teams, and empty rosters', () => {
@@ -22,6 +23,53 @@ test('validateGame rejects invalid dates, duplicate teams, and empty rosters', (
   assert.ok(result.errors.some((error) => error.includes('real date')))
   assert.ok(result.errors.some((error) => error.includes('different')))
   assert.ok(result.errors.some((error) => error.includes('homePlayers')))
+})
+
+test('validateGame rejects invalid and duplicate jersey numbers', () => {
+  const result = validateGame({
+    ...validGame,
+    homePlayers: [{ number: 0, name: 'Ana' }, { number: 0, name: 'Bea' }],
+    awayPlayers: [{ number: 8, name: 'Carlo' }, { number: 8, name: 'Diego' }],
+  })
+  assert.ok(result.errors.some((error) => error.includes('whole numbers')))
+  assert.ok(result.errors.some((error) => error.includes('unique')))
+})
+
+test('validateGame accepts saved league teams', () => {
+  const result = validateGame({
+    mode: 'league',
+    date: '2026-09-26',
+    venue: 'HAU Gym',
+    leagueId: '4',
+    homeLeagueTeamId: '10',
+    awayLeagueTeamId: '11',
+  })
+  assert.deepEqual(result.errors, [])
+  assert.equal(result.value.mode, 'league')
+  assert.equal(result.value.homeLeagueTeamId, '10')
+})
+
+test('validateGame rejects duplicate or invalid saved league teams', () => {
+  const result = validateGame({
+    mode: 'league',
+    date: '2026-09-26',
+    venue: 'HAU Gym',
+    leagueId: 'bad',
+    homeLeagueTeamId: '10',
+    awayLeagueTeamId: '10',
+  })
+  assert.ok(result.errors.some((error) => error.includes('leagueId')))
+  assert.ok(result.errors.some((error) => error.includes('different')))
+})
+
+test('league validators accept trimmed league and roster data', () => {
+  assert.deepEqual(validateLeague({ name: '  HAU Intramurals  ', season: ' 2026 ' }).value, {
+    name: 'HAU Intramurals',
+    season: '2026',
+  })
+  const team = validateLeagueTeam({ name: ' Blue Hawks ', players: [{ number: 7, name: ' Ana ' }] })
+  assert.deepEqual(team.errors, [])
+  assert.deepEqual(team.value.players[0], { number: 7, name: 'Ana' })
 })
 
 test('validatePlay accepts scoring and one-count box-score events', () => {

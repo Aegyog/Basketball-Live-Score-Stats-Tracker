@@ -14,10 +14,13 @@ The public Pages build uses demo mode until an API is deployed and the repositor
 ## Features and usage
 
 - Dashboard for active and completed games
-- New-game setup for the date, venue, teams, and rosters
+- League library for reusable teams, player names, and jersey numbers
+- New-game setup for the date, venue, teams, player names, and jersey numbers
+- Choice between saved league rosters and manual team entry for every new game
 - Live scoreboard with regulation quarters and overtime
-- Player selection and seven stat actions: 1, 2, or 3 points, rebound, assist, steal, and block
+- Direct-tap PTS shortcuts for +1, +2, or +3, plus REB, AST, STL, and BLK tiles that add +1 and immediately save each play
 - Synchronized team scores, player totals, and recent-play log
+- Expandable full audit-trail history during live games and in completed-game summaries
 - Transactional undo of the latest play
 - Game completion and final-game summaries
 - Server-side input validation and database constraints
@@ -25,12 +28,15 @@ The public Pages build uses demo mode until an API is deployed and the repositor
 
 ### Primary flow
 
-1. Open the dashboard and select **Start a new game**.
-2. Enter the date, venue, two different team names, and 1–15 players per side.
-3. Select a player and record a stat. Points update both the player and team totals.
-4. Use **Undo latest** to reverse the most recent play as one database transaction.
-5. Advance through the quarters, then select **End game** to preserve the final result.
-6. Open **History** to review completed games and player totals.
+1. Open **Leagues** to create a reusable league folder, then add teams and their 1–15 player rosters.
+2. Select **Start a new game**, then choose **Use saved league** or **Enter manually**.
+3. For a saved league, select two teams and review the automatically loaded rosters. Manual setup still accepts two team names and their player numbers.
+4. Use the +1, +2, or +3 PTS shortcut for a made shot, or tap another player stat to add +1. Point taps update both the player and team totals.
+5. Use **Undo latest** to reverse the most recent play as one database transaction.
+6. Advance through the quarters. Use **Undo quarter** immediately if the quarter was advanced accidentally, then select **End game** to preserve the final result.
+7. Open **History** to review completed games, player totals, and the full saved audit trail.
+
+Saved league rosters are templates. Starting a game copies the selected names and jersey numbers into that game's own roster, so later edits to the league library do not change historical games.
 
 ![Courtside Ledger dashboard](docs/screenshots/dashboard.png)
 
@@ -136,9 +142,14 @@ All request bodies are JSON. Invalid input returns `400`, missing games return `
 | `GET` | `/api/games` | List games with teams, players, totals, and plays |
 | `GET` | `/api/games/:id` | Get one complete game |
 | `POST` | `/api/games` | Create a game and both rosters |
+| `GET` | `/api/leagues` | List saved leagues, teams, and players |
+| `POST` | `/api/leagues` | Create a reusable league folder |
+| `POST` | `/api/leagues/:id/teams` | Add a saved team and roster to a league |
+| `PUT` | `/api/league-teams/:id` | Update a saved team and roster without changing past games |
 | `POST` | `/api/games/:id/plays` | Record a validated player stat |
 | `DELETE` | `/api/games/:id/plays/latest` | Reverse the latest play transactionally |
 | `PATCH` | `/api/games/:id/quarter` | Advance to the next quarter or overtime |
+| `PATCH` | `/api/games/:id/quarter/undo` | Move back one quarter when the new quarter has no plays |
 | `PATCH` | `/api/games/:id/finish` | Mark a live game final |
 
 Example game body:
@@ -149,8 +160,8 @@ Example game body:
   "venue": "HAU Gym",
   "homeName": "Blue Hawks",
   "awayName": "Orange Lions",
-  "homePlayers": ["Ana", "Bea"],
-  "awayPlayers": ["Carlo", "Diego"]
+  "homePlayers": [{ "number": 7, "name": "Ana" }, { "number": 12, "name": "Bea" }],
+  "awayPlayers": [{ "number": 4, "name": "Carlo" }, { "number": 9, "name": "Diego" }]
 }
 ```
 
@@ -176,6 +187,7 @@ server/
   db/schema.sql          normalized PostgreSQL schema and indexes
   db/seed.sql            invented development data
   gamesRepo.js           parameterized reads and transactional mutations
+  leaguesRepo.js         reusable league, team, and roster queries
   validation.js          server-side request validation
   validation.test.js     Node test-runner coverage for validation rules
   server.js              Express routes and error handling

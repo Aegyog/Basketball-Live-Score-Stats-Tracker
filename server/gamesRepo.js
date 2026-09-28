@@ -16,6 +16,7 @@ function assembleGames(gameRows, teamRows, playerRows, playRows) {
   const games = new Map(
     gameRows.map((row) => [String(row.id), {
       id: String(row.id),
+      leagueId: row.league_id ? String(row.league_id) : null,
       date: row.game_date,
       venue: row.venue,
       status: row.status,
@@ -72,7 +73,7 @@ function assembleGames(gameRows, teamRows, playerRows, playRows) {
 
 async function loadGames(client, where = '', values = []) {
   const games = await client.query(
-    `SELECT id, game_date, venue, status, current_quarter, created_at
+    `SELECT id, league_id, game_date, venue, status, current_quarter, created_at
      FROM games ${where}
      ORDER BY created_at DESC, id DESC`,
     values
@@ -128,18 +129,54 @@ export async function create(pool, input) {
 
   try {
     await client.query('BEGIN')
+    let leagueId = null
+    let lineups = [
+      ['home', input.homeName, input.homePlayers],
+      ['away', input.awayName, input.awayPlayers],
+    ]
+
+    if (input.mode === 'league') {
+      const savedTeams = await client.query(
+        `SELECT id, name
+         FROM league_teams
+         WHERE league_id = $1 AND id = ANY($2::bigint[])
+         ORDER BY id`,
+        [input.leagueId, [input.homeLeagueTeamId, input.awayLeagueTeamId]]
+      )
+      if (savedTeams.rowCount !== 2) throw problem(400, 'Both selected teams must belong to the selected league')
+
+      const savedPlayers = await client.query(
+        `SELECT league_team_id, player_number, name
+         FROM league_players
+         WHERE league_team_id = ANY($1::bigint[])
+         ORDER BY league_team_id, player_number, id`,
+        [savedTeams.rows.map((team) => team.id)]
+      )
+      const teamsById = new Map(savedTeams.rows.map((team) => [String(team.id), {
+        name: team.name,
+        players: savedPlayers.rows
+          .filter((player) => String(player.league_team_id) === String(team.id))
+          .map((player) => ({ number: player.player_number, name: player.name })),
+      }]))
+      const home = teamsById.get(String(input.homeLeagueTeamId))
+      const away = teamsById.get(String(input.awayLeagueTeamId))
+      if (!home?.players.length || !away?.players.length) throw problem(400, 'Each selected league team must have at least one player')
+      leagueId = input.leagueId
+      lineups = [
+        ['home', home.name, home.players],
+        ['away', away.name, away.players],
+      ]
+    }
+
     const game = await client.query(
-      `INSERT INTO games (game_date, venue)
-       VALUES ($1, $2)
+      `INSERT INTO games (league_id, game_date, venue)
+       VALUES ($1, $2, $3)
        RETURNING id`,
-      [input.date, input.venue]
+      [leagueId, input.date, input.venue]
     )
     gameId = game.rows[0].id
 
-    for (const [side, name, roster] of [
-      ['home', input.homeName, input.homePlayers],
-      ['away', input.awayName, input.awayPlayers],
-    ]) {
+    for (const [side, name, roster] of lineups) {
       const team = await client.query(
         `INSERT INTO teams (game_id, side, name)
          VALUES ($1, $2, $3)
@@ -148,9 +185,11 @@ export async function create(pool, input) {
       )
       await client.query(
         `INSERT INTO players (team_id, player_number, name)
-         SELECT $1, roster_number::integer, player_name
-         FROM unnest($2::text[]) WITH ORDINALITY AS roster(player_name, roster_number)`,
-        [team.rows[0].id, roster]
+         SELECT $1, roster.player_number, roster.player_name
+         FROM unnest($2::integer[], $3::text[]) WITH ORDINALITY
+           AS roster(player_number, player_name, position)
+         ORDER BY roster.position`,
+        [team.rows[0].id, roster.map((player) => player.number), roster.map((player) => player.name)]
       )
     }
 
@@ -270,6 +309,42 @@ export async function advanceQuarter(pool, gameId) {
     if (game.rowCount === 0) throw problem(404, 'Game not found')
     throw problem(409, game.rows[0].status === 'final' ? 'This game is already final' : 'The game is already in overtime')
   }
+  return getById(pool, gameId)
+}
+
+export async function undoQuarter(pool, gameId) {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+    const game = await client.query(
+      'SELECT status, current_quarter FROM games WHERE id = $1 FOR UPDATE',
+      [gameId]
+    )
+    if (game.rowCount === 0) throw problem(404, 'Game not found')
+    if (game.rows[0].status !== 'live') throw problem(409, 'A final game cannot be changed')
+    if (game.rows[0].current_quarter <= 1) throw problem(409, 'The game is already in quarter 1')
+
+    const currentQuarterPlay = await client.query(
+      'SELECT 1 FROM plays WHERE game_id = $1 AND quarter = $2 LIMIT 1',
+      [gameId, game.rows[0].current_quarter]
+    )
+    if (currentQuarterPlay.rowCount > 0) {
+      throw problem(409, 'Undo the plays recorded in this quarter before moving back')
+    }
+
+    await client.query(
+      'UPDATE games SET current_quarter = current_quarter - 1 WHERE id = $1',
+      [gameId]
+    )
+    await client.query('COMMIT')
+  } catch (error) {
+    await client.query('ROLLBACK')
+    throw error
+  } finally {
+    client.release()
+  }
+
   return getById(pool, gameId)
 }
 

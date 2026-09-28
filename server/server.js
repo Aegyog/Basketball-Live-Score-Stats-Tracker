@@ -2,7 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import { pool } from './db/pool.js'
 import * as games from './gamesRepo.js'
-import { parseId, validateGame, validatePlay } from './validation.js'
+import * as leagues from './leaguesRepo.js'
+import { parseId, validateGame, validateLeague, validateLeagueTeam, validatePlay } from './validation.js'
 
 const app = express()
 const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
@@ -28,6 +29,32 @@ app.get('/readyz', async (request, response) => {
 
 app.get('/api/games', async (request, response, next) => {
   try { response.json(await games.getAll(pool)) } catch (error) { next(error) }
+})
+
+app.get('/api/leagues', async (request, response, next) => {
+  try { response.json(await leagues.getAll(pool)) } catch (error) { next(error) }
+})
+
+app.post('/api/leagues', async (request, response, next) => {
+  const { errors, value } = validateLeague(request.body)
+  if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
+  try { response.status(201).json(await leagues.create(pool, value)) } catch (error) { next(error) }
+})
+
+app.post('/api/leagues/:id/teams', async (request, response, next) => {
+  const id = parseId(request.params.id, 'league id')
+  const { errors, value } = validateLeagueTeam(request.body)
+  if (id.error) errors.unshift(id.error)
+  if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
+  try { response.status(201).json(await leagues.createTeam(pool, id.value, value)) } catch (error) { next(error) }
+})
+
+app.put('/api/league-teams/:id', async (request, response, next) => {
+  const id = parseId(request.params.id, 'league team id')
+  const { errors, value } = validateLeagueTeam(request.body)
+  if (id.error) errors.unshift(id.error)
+  if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
+  try { response.json(await leagues.updateTeam(pool, id.value, value)) } catch (error) { next(error) }
 })
 
 app.get('/api/games/:id', async (request, response, next) => {
@@ -64,6 +91,12 @@ app.patch('/api/games/:id/quarter', async (request, response, next) => {
   const id = parseId(request.params.id, 'game id')
   if (id.error) return response.status(400).json({ error: id.error })
   try { response.json(await games.advanceQuarter(pool, id.value)) } catch (error) { next(error) }
+})
+
+app.patch('/api/games/:id/quarter/undo', async (request, response, next) => {
+  const id = parseId(request.params.id, 'game id')
+  if (id.error) return response.status(400).json({ error: id.error })
+  try { response.json(await games.undoQuarter(pool, id.value)) } catch (error) { next(error) }
 })
 
 app.patch('/api/games/:id/finish', async (request, response, next) => {

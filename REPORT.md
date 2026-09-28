@@ -12,6 +12,8 @@
 - Added sample data and validation tests.
 - Installed PostgreSQL 18 locally, created the `basketball_tracker` database, ran the schema and seed files, and checked the complete API workflow.
 - Updated the README, screenshot, security checklist, AI disclosure, and reflection journal.
+- Added a PostgreSQL-backed League Library so reusable teams and player numbers can be selected when starting a game, while keeping manual setup available.
+- Kept historical records stable by copying saved league rosters into each new game's existing snapshot tables.
 
 Implementation commit: <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 

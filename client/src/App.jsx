@@ -1,46 +1,45 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   advanceQuarter,
+  createLeague,
+  createLeagueTeam,
   createGame,
   finishGame,
   listGames,
+  listLeagues,
   recordPlay,
   resetDemoData,
   undoLastPlay,
+  undoQuarter,
+  updateLeagueTeam,
   USING_MOCK_API,
 } from './api'
 import AppHeader from './components/AppHeader.jsx'
 import DemoNotice from './components/DemoNotice.jsx'
 import GameCard from './components/GameCard.jsx'
 import GameSetup from './components/GameSetup.jsx'
+import LeagueLibrary from './components/LeagueLibrary.jsx'
 import PlayLog from './components/PlayLog.jsx'
 import Scoreboard from './components/Scoreboard.jsx'
 import TeamRosterPanel from './components/TeamRosterPanel.jsx'
 
-const statActions = [
-  { stat: 'points', amount: 1, label: '+1 Point' },
-  { stat: 'points', amount: 2, label: '+2 Points' },
-  { stat: 'points', amount: 3, label: '+3 Points' },
-  { stat: 'rebounds', amount: 1, label: '+ Rebound' },
-  { stat: 'assists', amount: 1, label: '+ Assist' },
-  { stat: 'steals', amount: 1, label: '+ Steal' },
-  { stat: 'blocks', amount: 1, label: '+ Block' },
-]
-
 export default function App() {
   const [view, setView] = useState('dashboard')
   const [games, setGames] = useState([])
+  const [leagues, setLeagues] = useState([])
+  const [setupDefaults, setSetupDefaults] = useState({ mode: 'manual', leagueId: '' })
   const [activeGame, setActiveGame] = useState(null)
-  const [selected, setSelected] = useState({ side: 'home', playerId: null })
   const [status, setStatus] = useState('loading')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function loadGames() {
+  async function loadData() {
     setStatus('loading')
     setError('')
     try {
-      setGames(await listGames())
+      const [loadedGames, loadedLeagues] = await Promise.all([listGames(), listLeagues()])
+      setGames(loadedGames)
+      setLeagues(loadedLeagues)
       setStatus('ready')
     } catch (caught) {
       setError(caught.message)
@@ -48,7 +47,7 @@ export default function App() {
     }
   }
 
-  useEffect(() => { loadGames() }, [])
+  useEffect(() => { loadData() }, [])
 
   const liveGames = useMemo(() => games.filter((game) => game.status === 'live'), [games])
   const finalGames = useMemo(() => games.filter((game) => game.status === 'final'), [games])
@@ -60,20 +59,19 @@ export default function App() {
 
   function openGame(game) {
     setActiveGame(game)
-    const first = game.home.players[0]
-    setSelected({ side: 'home', playerId: first?.id ?? null })
     setView(game.status === 'live' ? 'live' : 'summary')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function navigate(nextView) {
     setError('')
+    if (nextView === 'setup') setSetupDefaults({ mode: 'manual', leagueId: '' })
     setView(nextView)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   async function handleCreate(input) {
-    if (input.homePlayers.length === 0 || input.awayPlayers.length === 0) {
+    if (input.mode !== 'league' && (input.homePlayers.length === 0 || input.awayPlayers.length === 0)) {
       setError('Add at least one player to each team.')
       return
     }
@@ -85,6 +83,45 @@ export default function App() {
       openGame(game)
     } catch (caught) {
       setError(caught.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function startLeagueGame(leagueId) {
+    setError('')
+    setSetupDefaults({ mode: 'league', leagueId })
+    setView('setup')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function handleCreateLeague(input) {
+    setBusy(true)
+    setError('')
+    try {
+      const created = await createLeague(input)
+      setLeagues((current) => [...current, created])
+      return created
+    } catch (caught) {
+      setError(caught.message)
+      return null
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleSaveLeagueTeam(leagueId, teamId, input) {
+    setBusy(true)
+    setError('')
+    try {
+      const updatedLeague = teamId
+        ? await updateLeagueTeam(teamId, input)
+        : await createLeagueTeam(leagueId, input)
+      setLeagues((current) => current.map((league) => league.id === updatedLeague.id ? updatedLeague : league))
+      return true
+    } catch (caught) {
+      setError(caught.message)
+      return false
     } finally {
       setBusy(false)
     }
@@ -118,29 +155,32 @@ export default function App() {
     setBusy(false)
   }
 
-  const selectedPlayer = activeGame?.[selected.side]?.players.find((player) => player.id === selected.playerId)
+  const canUndoQuarter = activeGame?.status === 'live' && activeGame.quarter > 1 && !activeGame.plays.some((play) => play.quarter === activeGame.quarter)
 
   return (
     <div className="app-shell">
       <AppHeader view={view} onNavigate={navigate} />
       {error && <div className="global-error" role="alert"><span>{error}</span><button onClick={() => setError('')}>Dismiss</button></div>}
 
-      {view === 'setup' && <GameSetup onCancel={() => navigate('dashboard')} onCreate={handleCreate} saving={busy} />}
+      {view === 'setup' && <GameSetup leagues={leagues} initialMode={setupDefaults.mode} initialLeagueId={setupDefaults.leagueId} onCancel={() => navigate('dashboard')} onCreate={handleCreate} onManageLeagues={() => navigate('leagues')} saving={busy} />}
 
       {view === 'dashboard' && (
         <main className="content">
           <section className="hero">
             <div><span className="eyebrow">Live basketball statistics</span><h1>Every play. Every player.<br />One accurate record.</h1><p>Replace paper score sheets with a focused tracker for local leagues and barangay tournaments.</p><button className="button large" onClick={() => navigate('setup')}>Start a new game</button></div>
-            <div className="hero-card" aria-label="Week two project status"><span>Week 2</span><strong>{USING_MOCK_API ? 'Demo mode active' : 'Full stack connected'}</strong><p>The same scoring interface can now use either browser storage or the Express and PostgreSQL API.</p><div><b>5</b><small>screens</small><b>7</b><small>stat actions</small></div></div>
+            <div className="hero-card" aria-label="Game counts">
+              <div><b>{liveGames.length}</b><small>active</small><b>{finalGames.length}</b><small>completed</small></div>
+            </div>
           </section>
           <DemoNotice />
           {status === 'loading' && <p className="loading">Loading games...</p>}
-          {status === 'error' && <button className="button" onClick={loadGames}>Try again</button>}
+          {status === 'error' && <button className="button" onClick={loadData}>Try again</button>}
           {status === 'ready' && (
             <>
               <section className="section-block"><div className="section-heading"><div><span className="eyebrow">In progress</span><h2>Active game</h2></div><span>{liveGames.length} active</span></div>{liveGames.length ? liveGames.map((game) => <GameCard key={game.id} game={game} onOpen={openGame} />) : <div className="empty-state"><h3>No active game</h3><p>Create a game when the teams are ready.</p></div>}</section>
+              <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Reusable rosters</span><h2>Your leagues</h2></div><button className="text-button" onClick={() => navigate('leagues')}>Manage leagues</button></div>{leagues.length ? <div className="league-dashboard-grid">{leagues.slice(0, 3).map((league) => <button type="button" className="league-dashboard-card" key={league.id} onClick={() => navigate('leagues')}><span className="folder-mark" aria-hidden="true">L</span><span><strong>{league.name}</strong><small>{league.season || 'No season'} · {league.teams.length} {league.teams.length === 1 ? 'team' : 'teams'} · {league.teams.reduce((total, team) => total + team.players.length, 0)} players</small></span></button>)}</div> : <div className="empty-state"><h3>No saved leagues</h3><p>Create a league folder so teams and jersey numbers can be reused.</p><button className="button secondary" onClick={() => navigate('leagues')}>Create league</button></div>}</section>
               <section className="section-block"><div className="section-heading"><div><span className="eyebrow">Recently completed</span><h2>Game history</h2></div><button className="text-button" onClick={() => navigate('history')}>View all</button></div><div className="card-stack">{finalGames.slice(0, 2).map((game) => <GameCard key={game.id} game={game} onOpen={openGame} />)}</div></section>
-              <button className="reset-link" onClick={handleReset} disabled={busy}>Reset demo data</button>
+              {USING_MOCK_API && <button className="reset-link" onClick={handleReset} disabled={busy}>Reset demo data</button>}
             </>
           )}
         </main>
@@ -157,13 +197,10 @@ export default function App() {
         <main className="content game-page">
           <div className="game-toolbar"><div><span className="eyebrow">{activeGame.date} · {activeGame.venue}</span><h1>Live game tracker</h1></div><div><button className="button secondary" onClick={() => navigate('dashboard')}>Save and exit</button><button className="button danger" onClick={handleFinish} disabled={busy}>End game</button></div></div>
           <Scoreboard game={activeGame} />
-          <div className="game-grid">
-            <div className="rosters"><TeamRosterPanel side="home" team={activeGame.home} selectedPlayerId={selected.playerId} onSelect={(side, playerId) => setSelected({ side, playerId })} /><TeamRosterPanel side="away" team={activeGame.away} selectedPlayerId={selected.playerId} onSelect={(side, playerId) => setSelected({ side, playerId })} /></div>
-            <aside className="tracker-sidebar">
-              <section className="panel stat-actions"><span className="eyebrow">Selected player</span><h2>{selectedPlayer?.name ?? 'Choose a player'}</h2><p>{selectedPlayer ? `${activeGame[selected.side].name} · #${selectedPlayer.number}` : 'Select a roster row before recording a stat.'}</p><div className="action-grid">{statActions.map((action) => <button key={`${action.stat}-${action.amount}`} disabled={busy || !selectedPlayer} onClick={() => mutateGame(() => recordPlay(activeGame.id, { teamSide: selected.side, playerId: selected.playerId, stat: action.stat, amount: action.amount }))}>{action.label}</button>)}</div><button className="quarter-button" onClick={() => mutateGame(() => advanceQuarter(activeGame.id))} disabled={busy || activeGame.quarter >= 5}>Advance to {activeGame.quarter >= 4 ? 'overtime' : `quarter ${activeGame.quarter + 1}`}</button></section>
-              <PlayLog plays={activeGame.plays} busy={busy} onUndo={() => mutateGame(() => undoLastPlay(activeGame.id))} />
-            </aside>
-          </div>
+          <div className="tap-hint"><strong>Tap a stat to record it</strong><span>PTS supports +1, +2, or +3 · Other stats add +1</span></div>
+          <div className="rosters direct-rosters"><TeamRosterPanel side="home" team={activeGame.home} onAddStat={(side, playerId, stat, amount = 1) => mutateGame(() => recordPlay(activeGame.id, { teamSide: side, playerId, stat, amount }))} busy={busy} /><TeamRosterPanel side="away" team={activeGame.away} onAddStat={(side, playerId, stat, amount = 1) => mutateGame(() => recordPlay(activeGame.id, { teamSide: side, playerId, stat, amount }))} busy={busy} /></div>
+          <section className="panel quarter-panel"><div className="panel-heading"><div><span className="eyebrow">Game progress</span><h2>Quarter controls</h2></div><div className="quarter-actions"><button className="quarter-button" onClick={() => mutateGame(() => advanceQuarter(activeGame.id))} disabled={busy || activeGame.quarter >= 5}>Advance to {activeGame.quarter >= 4 ? 'overtime' : `quarter ${activeGame.quarter + 1}`}</button><button className="quarter-undo" onClick={() => mutateGame(() => undoQuarter(activeGame.id))} disabled={busy || !canUndoQuarter} title={activeGame.plays.some((play) => play.quarter === activeGame.quarter) ? 'Undo this quarter’s plays first' : ''}>Undo quarter</button></div></div></section>
+          <PlayLog plays={activeGame.plays} busy={busy} onUndo={() => mutateGame(() => undoLastPlay(activeGame.id))} />
         </main>
       )}
 
@@ -171,11 +208,14 @@ export default function App() {
         <main className="content game-page">
           <div className="page-heading"><div><span className="eyebrow">Completed game</span><h1>Game summary</h1></div><button className="button secondary" onClick={() => navigate('history')}>Back to history</button></div>
           <Scoreboard game={activeGame} />
-          <div className="rosters summary-rosters"><TeamRosterPanel side="home" team={activeGame.home} selectedPlayerId={null} onSelect={() => {}} /><TeamRosterPanel side="away" team={activeGame.away} selectedPlayerId={null} onSelect={() => {}} /></div>
+          <div className="rosters summary-rosters"><TeamRosterPanel side="home" team={activeGame.home} /><TeamRosterPanel side="away" team={activeGame.away} /></div>
+          <PlayLog plays={activeGame.plays} defaultExpanded />
         </main>
       )}
 
-      <footer className="site-footer"><span>Courtside Ledger</span><span>{USING_MOCK_API ? 'Demo · React + localStorage' : 'Full stack · React + Express + PostgreSQL'}</span></footer>
+      {view === 'leagues' && <LeagueLibrary leagues={leagues} busy={busy} onCreateLeague={handleCreateLeague} onSaveTeam={handleSaveLeagueTeam} onStartGame={startLeagueGame} />}
+
+      <footer className="site-footer"><span>Courtside Ledger</span></footer>
     </div>
   )
 }
