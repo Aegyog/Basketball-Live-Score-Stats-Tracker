@@ -3,6 +3,7 @@ import cors from 'cors'
 import { pool } from './db/pool.js'
 import * as games from './gamesRepo.js'
 import * as leagues from './leaguesRepo.js'
+import { createSessionToken, passwordMatches, requireScorer } from './auth.js'
 import { parseId, validateGame, validateLeague, validateLeagueTeam, validatePlay } from './validation.js'
 
 const app = express()
@@ -12,7 +13,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
   .filter(Boolean)
 
 app.disable('x-powered-by')
-app.use(cors({ origin: allowedOrigins }))
+app.use(cors({ origin: allowedOrigins, allowedHeaders: ['Content-Type', 'Authorization'] }))
 app.use(express.json({ limit: '100kb' }))
 
 app.get('/healthz', (request, response) => response.json({ ok: true }))
@@ -26,6 +27,27 @@ app.get('/readyz', async (request, response) => {
     response.status(503).json({ ok: false, db: 'down' })
   }
 })
+
+app.post('/api/auth/login', (request, response, next) => {
+  try {
+    const password = typeof request.body?.password === 'string' ? request.body.password : ''
+    if (password.length > 200 || !passwordMatches(password)) {
+      return response.status(401).json({ error: 'Incorrect scorer password' })
+    }
+
+    response.set('Cache-Control', 'no-store')
+    response.json({ token: createSessionToken(), expiresIn: 8 * 60 * 60 })
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.get('/api/auth/session', requireScorer, (request, response) => {
+  response.set('Cache-Control', 'no-store')
+  response.json({ authenticated: true })
+})
+
+app.use('/api', requireScorer)
 
 app.get('/api/games', async (request, response, next) => {
   try { response.json(await games.getAll(pool)) } catch (error) { next(error) }
@@ -113,8 +135,12 @@ app.use((error, request, response, next) => {
   response.status(status).json({ error: status >= 500 ? 'Something went wrong on the server' : error.message })
 })
 
-const port = process.env.PORT || 3000
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`)
-  console.log(`CORS allows: ${allowedOrigins.join(', ')}`)
-})
+if (!process.env.VERCEL) {
+  const port = process.env.PORT || 3000
+  app.listen(port, () => {
+    console.log(`API listening on http://localhost:${port}`)
+    console.log(`CORS allows: ${allowedOrigins.join(', ')}`)
+  })
+}
+
+export default app

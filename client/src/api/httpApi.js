@@ -1,9 +1,19 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+const SESSION_KEY = 'hoopstat:scorer-session'
+
+function sessionToken() {
+  return sessionStorage.getItem(SESSION_KEY)
+}
 
 async function request(path, options = {}) {
+  const token = sessionToken()
   const response = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
   })
   if (!response.ok) {
     let message = `${response.status} ${response.statusText}`
@@ -13,10 +23,26 @@ async function request(path, options = {}) {
     } catch {
       // The status line remains the fallback when the response is not JSON.
     }
+    if (response.status === 401 && path !== '/api/auth/login') {
+      sessionStorage.removeItem(SESSION_KEY)
+      window.dispatchEvent(new Event('hoopstat:unauthorized'))
+    }
     throw new Error(message)
   }
   return response.status === 204 ? null : response.json()
 }
+
+export async function login(password) {
+  const result = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  })
+  sessionStorage.setItem(SESSION_KEY, result.token)
+  return result
+}
+
+export const checkSession = () => request('/api/auth/session')
+export const logout = () => sessionStorage.removeItem(SESSION_KEY)
 
 export const listGames = () => request('/api/games')
 export const getGame = (id) => request(`/api/games/${id}`)

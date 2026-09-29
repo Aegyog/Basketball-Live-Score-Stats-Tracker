@@ -24,12 +24,21 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 h1, h2, h3, p { margin-top: 0; }
 
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at top, #e8eefc, #f8fafc 52%); }
+.login-card { width: min(430px, 100%); padding: 34px; background: #fff; border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
+.login-logo { display: block; width: 142px; height: 92px; margin: -20px auto 6px; object-fit: cover; }
+.login-card h1 { margin-bottom: 10px; font-size: 34px; letter-spacing: -.03em; }
+.login-card > p, .login-card > small { color: var(--muted); line-height: 1.55; }
+.login-card form { display: grid; gap: 16px; margin: 24px 0 18px; }
+.login-card .button { width: 100%; }
+.login-error { margin: 0; padding: 10px 12px; color: #991b1b; background: #fef2f2; border: 1px solid #fecaca; border-radius: 9px; font-size: 13px; }
 .app-header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 72px; padding: 12px max(24px, calc((100vw - 1180px) / 2)); background: rgba(255,255,255,.94); border-bottom: 1px solid var(--line); backdrop-filter: blur(14px); }
 .brand { display: flex; align-items: center; width: 118px; height: 70px; padding: 0; overflow: hidden; border: 0; background: none; }
 .brand-logo { display: block; width: 118px; height: 118px; object-fit: cover; }
 .app-header nav { display: flex; align-items: center; gap: 8px; }
 .nav-link { border: 0; background: none; color: var(--muted); padding: 10px 12px; font-weight: 650; }
 .nav-link:hover, .nav-link.active { color: var(--primary); }
+.sign-out { color: var(--muted); }
 
 .content { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; flex: 1; }
 .content.narrow { width: min(940px, calc(100% - 32px)); }

@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   advanceQuarter,
+  AUTH_REQUIRED,
+  checkSession,
   createLeague,
   createLeagueTeam,
   createGame,
   finishGame,
   listGames,
   listLeagues,
+  login,
+  logout,
   recordPlay,
   resetDemoData,
   undoLastPlay,
@@ -21,6 +25,7 @@ import GameSetup from './components/GameSetup.jsx'
 import LeagueLibrary from './components/LeagueLibrary.jsx'
 import PlayLog from './components/PlayLog.jsx'
 import Scoreboard from './components/Scoreboard.jsx'
+import ScorerLogin from './components/ScorerLogin.jsx'
 import TeamRosterPanel from './components/TeamRosterPanel.jsx'
 
 export default function App() {
@@ -32,6 +37,9 @@ export default function App() {
   const [status, setStatus] = useState('loading')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [authStatus, setAuthStatus] = useState(AUTH_REQUIRED ? 'checking' : 'authenticated')
+  const [authError, setAuthError] = useState('')
+  const [authBusy, setAuthBusy] = useState(false)
 
   async function loadData() {
     setStatus('loading')
@@ -47,7 +55,39 @@ export default function App() {
     }
   }
 
-  useEffect(() => { loadData() }, [])
+  useEffect(() => {
+    let active = true
+
+    async function start() {
+      if (AUTH_REQUIRED) {
+        try {
+          await checkSession()
+        } catch {
+          if (active) setAuthStatus('signed-out')
+          return
+        }
+      }
+      if (active) {
+        setAuthStatus('authenticated')
+        await loadData()
+      }
+    }
+
+    function handleUnauthorized() {
+      setGames([])
+      setLeagues([])
+      setActiveGame(null)
+      setAuthStatus('signed-out')
+      setAuthError('Your scorer session expired. Sign in again.')
+    }
+
+    window.addEventListener('hoopstat:unauthorized', handleUnauthorized)
+    start()
+    return () => {
+      active = false
+      window.removeEventListener('hoopstat:unauthorized', handleUnauthorized)
+    }
+  }, [])
 
   const liveGames = useMemo(() => games.filter((game) => game.status === 'live'), [games])
   const finalGames = useMemo(() => games.filter((game) => game.status === 'final'), [games])
@@ -155,11 +195,42 @@ export default function App() {
     setBusy(false)
   }
 
+  async function handleLogin(password) {
+    setAuthBusy(true)
+    setAuthError('')
+    try {
+      await login(password)
+      setAuthStatus('authenticated')
+      await loadData()
+      return true
+    } catch (caught) {
+      setAuthStatus('signed-out')
+      setAuthError(caught.message)
+      return false
+    } finally {
+      setAuthBusy(false)
+    }
+  }
+
+  function handleSignOut() {
+    logout()
+    setGames([])
+    setLeagues([])
+    setActiveGame(null)
+    setView('dashboard')
+    setAuthError('')
+    setAuthStatus('signed-out')
+  }
+
   const canUndoQuarter = activeGame?.status === 'live' && activeGame.quarter > 1 && !activeGame.plays.some((play) => play.quarter === activeGame.quarter)
+
+  if (AUTH_REQUIRED && authStatus !== 'authenticated') {
+    return <ScorerLogin busy={authBusy || authStatus === 'checking'} error={authError} onLogin={handleLogin} />
+  }
 
   return (
     <div className="app-shell">
-      <AppHeader view={view} onNavigate={navigate} />
+      <AppHeader view={view} onNavigate={navigate} onSignOut={AUTH_REQUIRED ? handleSignOut : null} />
       {error && <div className="global-error" role="alert"><span>{error}</span><button onClick={() => setError('')}>Dismiss</button></div>}
 
       {view === 'setup' && <GameSetup leagues={leagues} initialMode={setupDefaults.mode} initialLeagueId={setupDefaults.leagueId} onCancel={() => navigate('dashboard')} onCreate={handleCreate} onManageLeagues={() => navigate('leagues')} saving={busy} />}
