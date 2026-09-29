@@ -11,6 +11,7 @@ import {
   listLeagues,
   login,
   logout,
+  register,
   recordPlay,
   resetDemoData,
   undoLastPlay,
@@ -40,6 +41,7 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState(AUTH_REQUIRED ? 'checking' : 'authenticated')
   const [authError, setAuthError] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
 
   async function loadData() {
     setStatus('loading')
@@ -61,7 +63,8 @@ export default function App() {
     async function start() {
       if (AUTH_REQUIRED) {
         try {
-          await checkSession()
+          const session = await checkSession()
+          if (active) setCurrentUser(session.user)
         } catch {
           if (active) setAuthStatus('signed-out')
           return
@@ -77,8 +80,9 @@ export default function App() {
       setGames([])
       setLeagues([])
       setActiveGame(null)
+      setCurrentUser(null)
       setAuthStatus('signed-out')
-      setAuthError('Your scorer session expired. Sign in again.')
+      setAuthError('Your session expired. Sign in again.')
     }
 
     window.addEventListener('hoopstat:unauthorized', handleUnauthorized)
@@ -195,11 +199,14 @@ export default function App() {
     setBusy(false)
   }
 
-  async function handleLogin(password) {
+  async function handleAuthenticate({ mode, username, password }) {
     setAuthBusy(true)
     setAuthError('')
     try {
-      await login(password)
+      const result = mode === 'register'
+        ? await register(username, password)
+        : await login(username, password)
+      setCurrentUser(result.user)
       setAuthStatus('authenticated')
       await loadData()
       return true
@@ -217,6 +224,7 @@ export default function App() {
     setGames([])
     setLeagues([])
     setActiveGame(null)
+    setCurrentUser(null)
     setView('dashboard')
     setAuthError('')
     setAuthStatus('signed-out')
@@ -225,12 +233,12 @@ export default function App() {
   const canUndoQuarter = activeGame?.status === 'live' && activeGame.quarter > 1 && !activeGame.plays.some((play) => play.quarter === activeGame.quarter)
 
   if (AUTH_REQUIRED && authStatus !== 'authenticated') {
-    return <ScorerLogin busy={authBusy || authStatus === 'checking'} error={authError} onLogin={handleLogin} />
+    return <ScorerLogin busy={authBusy || authStatus === 'checking'} error={authError} onAuthenticate={handleAuthenticate} onClearError={() => setAuthError('')} />
   }
 
   return (
     <div className="app-shell">
-      <AppHeader view={view} onNavigate={navigate} onSignOut={AUTH_REQUIRED ? handleSignOut : null} />
+      <AppHeader view={view} onNavigate={navigate} onSignOut={AUTH_REQUIRED ? handleSignOut : null} user={currentUser} />
       {error && <div className="global-error" role="alert"><span>{error}</span><button onClick={() => setError('')}>Dismiss</button></div>}
 
       {view === 'setup' && <GameSetup leagues={leagues} initialMode={setupDefaults.mode} initialLeagueId={setupDefaults.leagueId} onCancel={() => navigate('dashboard')} onCreate={handleCreate} onManageLeagues={() => navigate('leagues')} saving={busy} />}

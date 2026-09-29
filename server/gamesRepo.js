@@ -114,16 +114,16 @@ async function loadGames(client, where = '', values = []) {
   return assembleGames(games.rows, teams.rows, players.rows, plays.rows)
 }
 
-export async function getAll(pool) {
-  return loadGames(pool)
+export async function getAll(pool, userId) {
+  return loadGames(pool, 'WHERE owner_user_id = $1', [userId])
 }
 
-export async function getById(pool, id) {
-  const result = await loadGames(pool, 'WHERE id = $1', [id])
+export async function getById(pool, userId, id) {
+  const result = await loadGames(pool, 'WHERE id = $1 AND owner_user_id = $2', [id, userId])
   return result[0] ?? null
 }
 
-export async function create(pool, input) {
+export async function create(pool, userId, input) {
   const client = await pool.connect()
   let gameId
 
@@ -137,11 +137,14 @@ export async function create(pool, input) {
 
     if (input.mode === 'league') {
       const savedTeams = await client.query(
-        `SELECT id, name
-         FROM league_teams
-         WHERE league_id = $1 AND id = ANY($2::bigint[])
-         ORDER BY id`,
-        [input.leagueId, [input.homeLeagueTeamId, input.awayLeagueTeamId]]
+        `SELECT lt.id, lt.name
+         FROM league_teams lt
+         JOIN leagues l ON l.id = lt.league_id
+         WHERE lt.league_id = $1
+           AND lt.id = ANY($2::bigint[])
+           AND l.owner_user_id = $3
+         ORDER BY lt.id`,
+        [input.leagueId, [input.homeLeagueTeamId, input.awayLeagueTeamId], userId]
       )
       if (savedTeams.rowCount !== 2) throw problem(400, 'Both selected teams must belong to the selected league')
 
@@ -169,10 +172,10 @@ export async function create(pool, input) {
     }
 
     const game = await client.query(
-      `INSERT INTO games (league_id, game_date, venue)
-       VALUES ($1, $2, $3)
+      `INSERT INTO games (owner_user_id, league_id, game_date, venue)
+       VALUES ($1, $2, $3, $4)
        RETURNING id`,
-      [leagueId, input.date, input.venue]
+      [userId, leagueId, input.date, input.venue]
     )
     gameId = game.rows[0].id
 
@@ -201,17 +204,17 @@ export async function create(pool, input) {
     client.release()
   }
 
-  return getById(pool, gameId)
+  return getById(pool, userId, gameId)
 }
 
-export async function recordPlay(pool, gameId, input) {
+export async function recordPlay(pool, userId, gameId, input) {
   const client = await pool.connect()
 
   try {
     await client.query('BEGIN')
     const game = await client.query(
-      'SELECT status, current_quarter FROM games WHERE id = $1 FOR UPDATE',
-      [gameId]
+      'SELECT status, current_quarter FROM games WHERE id = $1 AND owner_user_id = $2 FOR UPDATE',
+      [gameId, userId]
     )
     if (game.rowCount === 0) throw problem(404, 'Game not found')
     if (game.rows[0].status !== 'live') throw problem(409, 'This game is already final')
@@ -249,15 +252,18 @@ export async function recordPlay(pool, gameId, input) {
     client.release()
   }
 
-  return getById(pool, gameId)
+  return getById(pool, userId, gameId)
 }
 
-export async function undoLastPlay(pool, gameId) {
+export async function undoLastPlay(pool, userId, gameId) {
   const client = await pool.connect()
 
   try {
     await client.query('BEGIN')
-    const game = await client.query('SELECT status FROM games WHERE id = $1 FOR UPDATE', [gameId])
+    const game = await client.query(
+      'SELECT status FROM games WHERE id = $1 AND owner_user_id = $2 FOR UPDATE',
+      [gameId, userId]
+    )
     if (game.rowCount === 0) throw problem(404, 'Game not found')
     if (game.rows[0].status !== 'live') throw problem(409, 'A final game cannot be changed')
 
@@ -293,33 +299,36 @@ export async function undoLastPlay(pool, gameId) {
     client.release()
   }
 
-  return getById(pool, gameId)
+  return getById(pool, userId, gameId)
 }
 
-export async function advanceQuarter(pool, gameId) {
+export async function advanceQuarter(pool, userId, gameId) {
   const result = await pool.query(
     `UPDATE games
      SET current_quarter = current_quarter + 1
-     WHERE id = $1 AND status = 'live' AND current_quarter < 5
+     WHERE id = $1 AND owner_user_id = $2 AND status = 'live' AND current_quarter < 5
      RETURNING id`,
-    [gameId]
+    [gameId, userId]
   )
   if (result.rowCount === 0) {
-    const game = await pool.query('SELECT status, current_quarter FROM games WHERE id = $1', [gameId])
+    const game = await pool.query(
+      'SELECT status, current_quarter FROM games WHERE id = $1 AND owner_user_id = $2',
+      [gameId, userId]
+    )
     if (game.rowCount === 0) throw problem(404, 'Game not found')
     throw problem(409, game.rows[0].status === 'final' ? 'This game is already final' : 'The game is already in overtime')
   }
-  return getById(pool, gameId)
+  return getById(pool, userId, gameId)
 }
 
-export async function undoQuarter(pool, gameId) {
+export async function undoQuarter(pool, userId, gameId) {
   const client = await pool.connect()
 
   try {
     await client.query('BEGIN')
     const game = await client.query(
-      'SELECT status, current_quarter FROM games WHERE id = $1 FOR UPDATE',
-      [gameId]
+      'SELECT status, current_quarter FROM games WHERE id = $1 AND owner_user_id = $2 FOR UPDATE',
+      [gameId, userId]
     )
     if (game.rowCount === 0) throw problem(404, 'Game not found')
     if (game.rows[0].status !== 'live') throw problem(409, 'A final game cannot be changed')
@@ -345,21 +354,21 @@ export async function undoQuarter(pool, gameId) {
     client.release()
   }
 
-  return getById(pool, gameId)
+  return getById(pool, userId, gameId)
 }
 
-export async function finish(pool, gameId) {
+export async function finish(pool, userId, gameId) {
   const result = await pool.query(
     `UPDATE games
      SET status = 'final', finished_at = now()
-     WHERE id = $1 AND status = 'live'
+     WHERE id = $1 AND owner_user_id = $2 AND status = 'live'
      RETURNING id`,
-    [gameId]
+    [gameId, userId]
   )
   if (result.rowCount === 0) {
-    const game = await pool.query('SELECT status FROM games WHERE id = $1', [gameId])
+    const game = await pool.query('SELECT status FROM games WHERE id = $1 AND owner_user_id = $2', [gameId, userId])
     if (game.rowCount === 0) throw problem(404, 'Game not found')
     throw problem(409, 'This game is already final')
   }
-  return getById(pool, gameId)
+  return getById(pool, userId, gameId)
 }

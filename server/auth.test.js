@@ -1,27 +1,21 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createSessionToken, passwordMatches, verifySessionToken } from './auth.js'
+import { createSessionToken, verifySessionToken } from './auth.js'
 
-process.env.SCORER_PASSWORD = 'test-password'
 process.env.SESSION_SECRET = 'test-session-secret-that-is-long-enough'
-
-test('passwordMatches accepts only the configured scorer password', () => {
-  assert.equal(passwordMatches('test-password'), true)
-  assert.equal(passwordMatches('wrong-password'), false)
-})
 
 test('session tokens are signed and expire after eight hours', () => {
   const issuedAt = Date.UTC(2026, 8, 30, 8)
-  const token = createSessionToken(issuedAt)
+  const token = createSessionToken({ id: '42', username: 'sample.user' }, issuedAt)
 
-  assert.equal(verifySessionToken(token, issuedAt + 60_000), true)
-  assert.equal(verifySessionToken(token, issuedAt + (8 * 60 * 60 * 1000) + 1_000), false)
+  assert.deepEqual(verifySessionToken(token, issuedAt + 60_000), { id: '42', username: 'sample.user' })
+  assert.equal(verifySessionToken(token, issuedAt + (8 * 60 * 60 * 1000) + 1_000), null)
 })
 
 test('session tokens reject tampering', () => {
-  const token = createSessionToken()
+  const token = createSessionToken({ id: '42', username: 'sample.user' })
   const [payload, signature] = token.split('.')
 
-  assert.equal(verifySessionToken(`${payload}.${signature.slice(0, -1)}x`), false)
-  assert.equal(verifySessionToken(`eyJyb2xlIjoiYWRtaW4ifQ.${signature}`), false)
+  assert.equal(verifySessionToken(`${payload}.${signature.slice(0, -1)}x`), null)
+  assert.equal(verifySessionToken(`eyJyb2xlIjoiYWRtaW4ifQ.${signature}`), null)
 })

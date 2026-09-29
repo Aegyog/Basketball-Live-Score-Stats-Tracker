@@ -7,5 +7,6 @@ const implementation = USING_MOCK_API ? mockApi : httpApi
 
 export const { listGames, getGame, createGame, listLeagues, createLeague, createLeagueTeam, updateLeagueTeam, recordPlay, undoLastPlay, advanceQuarter, undoQuarter, finishGame, resetDemoData } = implementation
 export const login = httpApi.login
+export const register = httpApi.register
 export const checkSession = httpApi.checkSession
 export const logout = httpApi.logout

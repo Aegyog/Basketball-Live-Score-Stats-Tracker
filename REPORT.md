@@ -14,8 +14,9 @@
 - Updated the README, screenshot, security checklist, AI disclosure, and reflection journal.
 - Added a PostgreSQL-backed League Library so reusable teams and player numbers can be selected when starting a game, while keeping manual setup available.
 - Kept historical records stable by copying saved league rosters into each new game's existing snapshot tables.
-- Deployed the React client and Express API to Vercel, connected a Neon PostgreSQL production database, and replaced public demo mode with authenticated shared persistence.
-- Added a scorer password and signed eight-hour sessions so game and league routes are no longer publicly writable.
+- Deployed the React client and Express API to Vercel, connected a Neon PostgreSQL production database, and replaced public demo mode with authenticated persistence.
+- Replaced the initial shared scorer password with public username/password registration, salted password hashes, signed eight-hour sessions, and private per-user leagues and games.
+- Verified production with two temporary accounts: each could use its own workspace, while direct access to the other account's league and game returned no data or `404`. The test accounts were deleted afterward.
 
 Implementation commit: <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
@@ -30,10 +31,12 @@ The Week 1 version worked as a browser demo, but its data was only stored in `lo
 - The Week 1 README said two routes used `POST`, but the React HTTP adapter used `PATCH`. The API and documentation now use the same methods.
 - The first validation rule allowed amounts of 2 or 3 for every statistic. It now allows 1–3 only for points and exactly 1 for rebounds, assists, steals, and blocks.
 - The first Vercel API deployment returned platform-level 404 responses because `server.js` was not detected as a function. An explicit Vercel route now sends every API request to the Express app.
+- The first production authentication design used one shared password, which would require every user to know the same secret. It was replaced with self-service accounts and record ownership so anyone can register without gaining access to someone else's data.
 
 ## What is left to do
 
 - Review the backend files until I can explain how the schema, validation, and transactions work.
 - Write and test a meaningful part myself so I can meet the required 20% student-authored code rule.
-- Replace the shared scorer password with individual accounts and roles if the project grows beyond one scorekeeping team.
+- Add email verification and password recovery so users can regain access without administrator help.
+- Add optional organization roles only if teams later need to share one workspace.
 - Check the public GitHub links after the push and submit them in Canvas.

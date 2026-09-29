@@ -1,4 +1,4 @@
-export default function AppHeader({ view, onNavigate, onSignOut }) {
+export default function AppHeader({ view, onNavigate, onSignOut, user }) {
   return (
     <header className="app-header">
       <button
@@ -14,6 +14,7 @@ export default function AppHeader({ view, onNavigate, onSignOut }) {
         <button className={view === 'leagues' ? 'nav-link active' : 'nav-link'} onClick={() => onNavigate('leagues')}>Leagues</button>
         <button className={view === 'history' ? 'nav-link active' : 'nav-link'} onClick={() => onNavigate('history')}>History</button>
         <button className="button small" onClick={() => onNavigate('setup')}>New game</button>
+        {user && <span className="account-name" title={`Signed in as ${user.username}`}>@{user.username}</span>}
         {onSignOut && <button className="text-button sign-out" onClick={onSignOut}>Sign out</button>}
       </nav>
     </header>

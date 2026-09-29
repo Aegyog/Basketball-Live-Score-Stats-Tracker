@@ -1,8 +1,11 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-const SESSION_KEY = 'hoopstat:scorer-session'
+const SESSION_KEY = 'hoopstat:user-session'
+const LEGACY_SESSION_KEY = 'hoopstat:scorer-session'
 
 function sessionToken() {
-  return sessionStorage.getItem(SESSION_KEY)
+  const token = sessionStorage.getItem(SESSION_KEY)
+  if (!token) sessionStorage.removeItem(LEGACY_SESSION_KEY)
+  return token
 }
 
 async function request(path, options = {}) {
@@ -23,8 +26,9 @@ async function request(path, options = {}) {
     } catch {
       // The status line remains the fallback when the response is not JSON.
     }
-    if (response.status === 401 && path !== '/api/auth/login') {
+    if (token && response.status === 401 && !['/api/auth/login', '/api/auth/register'].includes(path)) {
       sessionStorage.removeItem(SESSION_KEY)
+      sessionStorage.removeItem(LEGACY_SESSION_KEY)
       window.dispatchEvent(new Event('hoopstat:unauthorized'))
     }
     throw new Error(message)
@@ -32,17 +36,33 @@ async function request(path, options = {}) {
   return response.status === 204 ? null : response.json()
 }
 
-export async function login(password) {
-  const result = await request('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ password }),
-  })
+function saveSession(result) {
+  sessionStorage.removeItem(LEGACY_SESSION_KEY)
   sessionStorage.setItem(SESSION_KEY, result.token)
   return result
 }
 
+export async function login(username, password) {
+  const result = await request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  })
+  return saveSession(result)
+}
+
+export async function register(username, password) {
+  const result = await request('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, password }),
+  })
+  return saveSession(result)
+}
+
 export const checkSession = () => request('/api/auth/session')
-export const logout = () => sessionStorage.removeItem(SESSION_KEY)
+export const logout = () => {
+  sessionStorage.removeItem(SESSION_KEY)
+  sessionStorage.removeItem(LEGACY_SESSION_KEY)
+}
 
 export const listGames = () => request('/api/games')
 export const getGame = (id) => request(`/api/games/${id}`)

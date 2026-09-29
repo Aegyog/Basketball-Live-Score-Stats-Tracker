@@ -11,11 +11,13 @@ For Week 2, I connected the React client to an Express API and PostgreSQL databa
 - GitHub Pages: <https://aegyog.github.io/Basketball-Live-Score-Stats-Tracker/>
 - Repository: <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker>
 
-The Vercel production build uses the authenticated Express API and a Neon PostgreSQL database. The GitHub Pages build remains a browser-local demo. No database credential belongs in a `VITE_` variable.
+The Vercel production build uses self-service user accounts, an authenticated Express API, and a Neon PostgreSQL database. Each account has a private workspace: users cannot read or change another account's leagues or games. The GitHub Pages build remains a browser-local demo. No database credential belongs in a `VITE_` variable.
 
 ## Features and usage
 
 - Dashboard for active and completed games
+- Public account registration and username/password sign-in
+- Private per-account leagues, games, rosters, and statistics
 - League library for reusable teams, player names, and jersey numbers
 - New-game setup for the date, venue, teams, player names, and jersey numbers
 - Choice between saved league rosters and manual team entry for every new game
@@ -30,13 +32,14 @@ The Vercel production build uses the authenticated Express API and a Neon Postgr
 
 ### Primary flow
 
-1. Open **Leagues** to create a reusable league folder, then add teams and their 1–15 player rosters.
-2. Select **Start a new game**, then choose **Use saved league** or **Enter manually**.
-3. For a saved league, select two teams and review the automatically loaded rosters. Manual setup still accepts two team names and their player numbers.
-4. Use the +1, +2, or +3 PTS shortcut for a made shot, or tap another player stat to add +1. Point taps update both the player and team totals.
-5. Use **Undo latest** to reverse the most recent play as one database transaction.
-6. Advance through the quarters. Use **Undo quarter** immediately if the quarter was advanced accidentally, then select **End game** to preserve the final result.
-7. Open **History** to review completed games, player totals, and the full saved audit trail.
+1. Create an account with a unique username and a password of at least eight characters, or sign in to an existing account.
+2. Open **Leagues** to create a reusable league folder, then add teams and their 1–15 player rosters.
+3. Select **Start a new game**, then choose **Use saved league** or **Enter manually**.
+4. For a saved league, select two teams and review the automatically loaded rosters. Manual setup still accepts two team names and their player numbers.
+5. Use the +1, +2, or +3 PTS shortcut for a made shot, or tap another player stat to add +1. Point taps update both the player and team totals.
+6. Use **Undo latest** to reverse the most recent play as one database transaction.
+7. Advance through the quarters. Use **Undo quarter** immediately if the quarter was advanced accidentally, then select **End game** to preserve the final result.
+8. Open **History** to review completed games, player totals, and the full saved audit trail.
 
 Saved league rosters are templates. Starting a game copies the selected names and jersey numbers into that game's own roster, so later edits to the league library do not change historical games.
 
@@ -74,7 +77,6 @@ On macOS or Linux, use `cp .env.example .env`. Edit `server/.env` with your loca
 DATABASE_URL=postgresql://postgres:devpassword@localhost:5432/basketball_tracker
 CORS_ORIGINS=http://localhost:5173
 NODE_ENV=development
-SCORER_PASSWORD=replace-with-a-unique-scorer-password
 SESSION_SECRET=replace-with-at-least-32-random-characters
 ```
 
@@ -100,7 +102,7 @@ Expected checks:
 
 - <http://localhost:3000/healthz> returns `{"ok":true}`.
 - <http://localhost:3000/readyz> returns `{"ok":true,"db":"up"}` when PostgreSQL is reachable.
-- <http://localhost:3000/api/games> returns the seeded games.
+- <http://localhost:3000/api/games> returns `401` until a user signs in.
 
 ### 2. Configure and run the React client
 
@@ -120,7 +122,7 @@ VITE_USE_MOCK_API=false
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
-Open <http://localhost:5173>, sign in with the configured scorer password, and the dashboard should show one active game and one completed game from PostgreSQL. To run without the server, set `VITE_USE_MOCK_API=true`; the orange demo notice confirms that games are then stored only in that browser.
+Open <http://localhost:5173>, create a username/password account, and the dashboard will open an empty private workspace backed by PostgreSQL. To run without the server, set `VITE_USE_MOCK_API=true`; the orange demo notice confirms that games are then stored only in that browser.
 
 ### Environment variables
 
@@ -129,8 +131,7 @@ Open <http://localhost:5173>, sign in with the configured scorer password, and t
 | `server/.env` | `DATABASE_URL` | `postgresql://postgres:devpassword@localhost:5432/basketball_tracker` | PostgreSQL connection string; secret in production |
 | `server/.env` | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated allowed browser origins |
 | `server/.env` | `NODE_ENV` | `development` | Runtime mode |
-| `server/.env` | `SCORER_PASSWORD` | `replace-with-a-unique-scorer-password` | Shared scorer credential; secret in production |
-| `server/.env` | `SESSION_SECRET` | `replace-with-at-least-32-random-characters` | Signs eight-hour scorer sessions; secret in production |
+| `server/.env` | `SESSION_SECRET` | `replace-with-at-least-32-random-characters` | Signs eight-hour user sessions; secret in production |
 | `client/.env` | `VITE_USE_MOCK_API` | `false` | `false` selects the HTTP API; any other value selects demo mode |
 | `client/.env` | `VITE_API_BASE_URL` | `http://localhost:3000` | Express API origin |
 | root `.env` | `POSTGRES_PASSWORD` | `replace-with-a-long-random-value` | Used only by `compose.yml` |
@@ -145,8 +146,9 @@ All request bodies are JSON. Invalid input returns `400`, missing games return `
 | --- | --- | --- |
 | `GET` | `/healthz` | Confirm the Express process is alive |
 | `GET` | `/readyz` | Confirm PostgreSQL is reachable |
-| `POST` | `/api/auth/login` | Exchange the scorer password for an eight-hour signed session token |
-| `GET` | `/api/auth/session` | Validate the current scorer session |
+| `POST` | `/api/auth/register` | Create a username/password account and return an eight-hour signed session token |
+| `POST` | `/api/auth/login` | Verify a username/password and return an eight-hour signed session token |
+| `GET` | `/api/auth/session` | Validate the current user session |
 | `GET` | `/api/games` | List games with teams, players, totals, and plays |
 | `GET` | `/api/games/:id` | Get one complete game |
 | `POST` | `/api/games` | Create a game and both rosters |
@@ -194,6 +196,8 @@ client/
 server/
   db/schema.sql          normalized PostgreSQL schema and indexes
   db/seed.sql            invented development data
+  auth.js                signed account-session creation and verification
+  usersRepo.js           account validation and scrypt password hashing
   gamesRepo.js           parameterized reads and transactional mutations
   leaguesRepo.js         reusable league, team, and roster queries
   validation.js          server-side request validation
@@ -210,14 +214,16 @@ REPORT.md                current project increment report
 - Create-game, record-play, and undo operations keep related writes in short transactions.
 - Values are always passed as query parameters. The only dynamic SQL identifier is selected from an internal five-value stat whitelist.
 - CORS uses an explicit origin allowlist, JSON bodies are limited to 100 KB, Express's identifying header is disabled, and production errors do not expose stack traces.
-- Every `/api` game and league route requires a signed scorer session. Health and readiness endpoints remain public for monitoring.
+- Passwords are salted and hashed with Node's `scrypt`; plaintext passwords are never stored.
+- Every `/api` game and league route requires a signed user session and filters records by the session's user ID. Health and readiness endpoints remain public for monitoring.
 - The production database is a pooled Neon PostgreSQL resource connected to the API through encrypted Vercel environment variables.
 - Docker Compose does not publish PostgreSQL to the host network.
 
 ## Known issues and next steps
 
-- The production schema and seed ran successfully on Neon. Live verification covered health, readiness, rejected anonymous access, authenticated reads, scoring persistence, audit-trail persistence, and transactional undo; the seeded game was restored afterward.
-- Authentication currently uses one shared scorer password rather than individual accounts or roles. Rotate it in Vercel when access changes.
+- The production schema migration ran successfully on Neon without deleting the previous sample rows. Those unowned rows are hidden from user accounts.
+- Live verification created two temporary accounts, confirmed that registration and sessions work, confirmed each account can see only its own leagues and games, and removed the temporary accounts and their data afterward.
+- Accounts currently use usernames only. Email verification, password recovery, account deletion, and organization roles are not implemented yet, so users must retain their password.
 - Neon manages the production database credentials. Local development may still use an administrator account and should use a restricted role if it is exposed beyond one machine.
 - GitHub Actions currently references official actions by release tags rather than immutable commit SHAs.
 - GitHub Pages remains demo-only because it does not receive the Vercel production variables.

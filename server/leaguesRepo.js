@@ -78,36 +78,39 @@ async function insertPlayers(client, teamId, players) {
   )
 }
 
-export async function getAll(pool) {
-  return loadLeagues(pool)
+export async function getAll(pool, userId) {
+  return loadLeagues(pool, 'WHERE owner_user_id = $1', [userId])
 }
 
-export async function getById(pool, id) {
-  const result = await loadLeagues(pool, 'WHERE id = $1', [id])
+export async function getById(pool, userId, id) {
+  const result = await loadLeagues(pool, 'WHERE id = $1 AND owner_user_id = $2', [id, userId])
   return result[0] ?? null
 }
 
-export async function create(pool, input) {
+export async function create(pool, userId, input) {
   try {
     const result = await pool.query(
-      `INSERT INTO leagues (name, season)
-       VALUES ($1, $2)
+      `INSERT INTO leagues (owner_user_id, name, season)
+       VALUES ($1, $2, $3)
        RETURNING id`,
-      [input.name, input.season]
+      [userId, input.name, input.season]
     )
-    return getById(pool, result.rows[0].id)
+    return getById(pool, userId, result.rows[0].id)
   } catch (error) {
     throw duplicateProblem(error, 'A league with that name and season already exists')
   }
 }
 
-export async function createTeam(pool, leagueId, input) {
+export async function createTeam(pool, userId, leagueId, input) {
   const client = await pool.connect()
   let teamId
 
   try {
     await client.query('BEGIN')
-    const league = await client.query('SELECT id FROM leagues WHERE id = $1 FOR KEY SHARE', [leagueId])
+    const league = await client.query(
+      'SELECT id FROM leagues WHERE id = $1 AND owner_user_id = $2 FOR KEY SHARE',
+      [leagueId, userId]
+    )
     if (league.rowCount === 0) throw problem(404, 'League not found')
     const team = await client.query(
       `INSERT INTO league_teams (league_id, name)
@@ -125,24 +128,26 @@ export async function createTeam(pool, leagueId, input) {
     client.release()
   }
 
-  return getById(pool, leagueId)
+  return getById(pool, userId, leagueId)
 }
 
-export async function updateTeam(pool, teamId, input) {
+export async function updateTeam(pool, userId, teamId, input) {
   const client = await pool.connect()
   let leagueId
 
   try {
     await client.query('BEGIN')
-    const team = await client.query(
-      `UPDATE league_teams
-       SET name = $1
-       WHERE id = $2
-       RETURNING league_id`,
-      [input.name, teamId]
+    const ownedTeam = await client.query(
+      `SELECT lt.league_id
+       FROM league_teams lt
+       JOIN leagues l ON l.id = lt.league_id
+       WHERE lt.id = $1 AND l.owner_user_id = $2
+       FOR UPDATE OF lt`,
+      [teamId, userId]
     )
-    if (team.rowCount === 0) throw problem(404, 'League team not found')
-    leagueId = team.rows[0].league_id
+    if (ownedTeam.rowCount === 0) throw problem(404, 'League team not found')
+    leagueId = ownedTeam.rows[0].league_id
+    await client.query('UPDATE league_teams SET name = $1 WHERE id = $2', [input.name, teamId])
     await client.query('DELETE FROM league_players WHERE league_team_id = $1', [teamId])
     await insertPlayers(client, teamId, input.players)
     await client.query('COMMIT')
@@ -153,5 +158,5 @@ export async function updateTeam(pool, teamId, input) {
     client.release()
   }
 
-  return getById(pool, leagueId)
+  return getById(pool, userId, leagueId)
 }

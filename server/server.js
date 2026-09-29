@@ -3,7 +3,8 @@ import cors from 'cors'
 import { pool } from './db/pool.js'
 import * as games from './gamesRepo.js'
 import * as leagues from './leaguesRepo.js'
-import { createSessionToken, passwordMatches, requireScorer } from './auth.js'
+import * as users from './usersRepo.js'
+import { createSessionToken, requireUser } from './auth.js'
 import { parseId, validateGame, validateLeague, validateLeagueTeam, validatePlay } from './validation.js'
 
 const app = express()
@@ -28,39 +29,51 @@ app.get('/readyz', async (request, response) => {
   }
 })
 
-app.post('/api/auth/login', (request, response, next) => {
+app.post('/api/auth/register', async (request, response, next) => {
   try {
-    const password = typeof request.body?.password === 'string' ? request.body.password : ''
-    if (password.length > 200 || !passwordMatches(password)) {
-      return response.status(401).json({ error: 'Incorrect scorer password' })
-    }
+    const { errors, value } = users.validateCredentials(request.body)
+    if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
+    const user = await users.create(pool, value)
 
     response.set('Cache-Control', 'no-store')
-    response.json({ token: createSessionToken(), expiresIn: 8 * 60 * 60 })
+    response.status(201).json({ user, token: createSessionToken(user), expiresIn: 8 * 60 * 60 })
   } catch (error) {
     next(error)
   }
 })
 
-app.get('/api/auth/session', requireScorer, (request, response) => {
-  response.set('Cache-Control', 'no-store')
-  response.json({ authenticated: true })
+app.post('/api/auth/login', async (request, response, next) => {
+  try {
+    const { errors, value } = users.validateCredentials(request.body)
+    if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
+    const user = await users.authenticate(pool, value)
+
+    response.set('Cache-Control', 'no-store')
+    response.json({ user, token: createSessionToken(user), expiresIn: 8 * 60 * 60 })
+  } catch (error) {
+    next(error)
+  }
 })
 
-app.use('/api', requireScorer)
+app.get('/api/auth/session', requireUser, (request, response) => {
+  response.set('Cache-Control', 'no-store')
+  response.json({ authenticated: true, user: request.user })
+})
+
+app.use('/api', requireUser)
 
 app.get('/api/games', async (request, response, next) => {
-  try { response.json(await games.getAll(pool)) } catch (error) { next(error) }
+  try { response.json(await games.getAll(pool, request.user.id)) } catch (error) { next(error) }
 })
 
 app.get('/api/leagues', async (request, response, next) => {
-  try { response.json(await leagues.getAll(pool)) } catch (error) { next(error) }
+  try { response.json(await leagues.getAll(pool, request.user.id)) } catch (error) { next(error) }
 })
 
 app.post('/api/leagues', async (request, response, next) => {
   const { errors, value } = validateLeague(request.body)
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
-  try { response.status(201).json(await leagues.create(pool, value)) } catch (error) { next(error) }
+  try { response.status(201).json(await leagues.create(pool, request.user.id, value)) } catch (error) { next(error) }
 })
 
 app.post('/api/leagues/:id/teams', async (request, response, next) => {
@@ -68,7 +81,7 @@ app.post('/api/leagues/:id/teams', async (request, response, next) => {
   const { errors, value } = validateLeagueTeam(request.body)
   if (id.error) errors.unshift(id.error)
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
-  try { response.status(201).json(await leagues.createTeam(pool, id.value, value)) } catch (error) { next(error) }
+  try { response.status(201).json(await leagues.createTeam(pool, request.user.id, id.value, value)) } catch (error) { next(error) }
 })
 
 app.put('/api/league-teams/:id', async (request, response, next) => {
@@ -76,14 +89,14 @@ app.put('/api/league-teams/:id', async (request, response, next) => {
   const { errors, value } = validateLeagueTeam(request.body)
   if (id.error) errors.unshift(id.error)
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
-  try { response.json(await leagues.updateTeam(pool, id.value, value)) } catch (error) { next(error) }
+  try { response.json(await leagues.updateTeam(pool, request.user.id, id.value, value)) } catch (error) { next(error) }
 })
 
 app.get('/api/games/:id', async (request, response, next) => {
   const id = parseId(request.params.id, 'game id')
   if (id.error) return response.status(400).json({ error: id.error })
   try {
-    const game = await games.getById(pool, id.value)
+    const game = await games.getById(pool, request.user.id, id.value)
     if (!game) return response.status(404).json({ error: 'Game not found' })
     response.json(game)
   } catch (error) { next(error) }
@@ -92,7 +105,7 @@ app.get('/api/games/:id', async (request, response, next) => {
 app.post('/api/games', async (request, response, next) => {
   const { errors, value } = validateGame(request.body)
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
-  try { response.status(201).json(await games.create(pool, value)) } catch (error) { next(error) }
+  try { response.status(201).json(await games.create(pool, request.user.id, value)) } catch (error) { next(error) }
 })
 
 app.post('/api/games/:id/plays', async (request, response, next) => {
@@ -100,31 +113,31 @@ app.post('/api/games/:id/plays', async (request, response, next) => {
   const { errors, value } = validatePlay(request.body)
   if (id.error) errors.unshift(id.error)
   if (errors.length > 0) return response.status(400).json({ error: errors.join('; ') })
-  try { response.status(201).json(await games.recordPlay(pool, id.value, value)) } catch (error) { next(error) }
+  try { response.status(201).json(await games.recordPlay(pool, request.user.id, id.value, value)) } catch (error) { next(error) }
 })
 
 app.delete('/api/games/:id/plays/latest', async (request, response, next) => {
   const id = parseId(request.params.id, 'game id')
   if (id.error) return response.status(400).json({ error: id.error })
-  try { response.json(await games.undoLastPlay(pool, id.value)) } catch (error) { next(error) }
+  try { response.json(await games.undoLastPlay(pool, request.user.id, id.value)) } catch (error) { next(error) }
 })
 
 app.patch('/api/games/:id/quarter', async (request, response, next) => {
   const id = parseId(request.params.id, 'game id')
   if (id.error) return response.status(400).json({ error: id.error })
-  try { response.json(await games.advanceQuarter(pool, id.value)) } catch (error) { next(error) }
+  try { response.json(await games.advanceQuarter(pool, request.user.id, id.value)) } catch (error) { next(error) }
 })
 
 app.patch('/api/games/:id/quarter/undo', async (request, response, next) => {
   const id = parseId(request.params.id, 'game id')
   if (id.error) return response.status(400).json({ error: id.error })
-  try { response.json(await games.undoQuarter(pool, id.value)) } catch (error) { next(error) }
+  try { response.json(await games.undoQuarter(pool, request.user.id, id.value)) } catch (error) { next(error) }
 })
 
 app.patch('/api/games/:id/finish', async (request, response, next) => {
   const id = parseId(request.params.id, 'game id')
   if (id.error) return response.status(400).json({ error: id.error })
-  try { response.json(await games.finish(pool, id.value)) } catch (error) { next(error) }
+  try { response.json(await games.finish(pool, request.user.id, id.value)) } catch (error) { next(error) }
 })
 
 app.use((request, response) => response.status(404).json({ error: 'No such route' }))

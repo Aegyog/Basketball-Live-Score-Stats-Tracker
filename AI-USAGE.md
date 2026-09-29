@@ -28,12 +28,12 @@ This project was built with AI assistance. This file records what was requested,
 - **What I kept or changed:** I installed and configured PostgreSQL locally, then used Codex to run the database and API checks. The documents now record that the local integration passed while still listing the missing access control and commit links.
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
-### 2026-09-30 - Authenticated production deployment
+### 2026-09-30 - Production deployment and individual accounts
 
 - **Tool:** OpenAI Codex
 - **What I asked for:** Replace the public demo deployment with the complete database-backed application and explain the production setup afterward.
-- **What it produced:** A shared scorer login with signed eight-hour sessions, protected API routes, Vercel Express routing, a Neon production database, production environment configuration, and deployment documentation.
-- **What I kept or changed:** I approved the Neon Marketplace integration and the two production secrets. Codex corrected an initial Vercel 404 by adding an explicit function route, then verified a temporary scoring write and transactional undo against production without leaving test data behind.
+- **What it produced:** Vercel Express routing, a Neon production database, production environment configuration, and an initial shared-password gate. After I clarified that anyone should be able to use the site, Codex replaced that gate with self-service username/password registration, salted `scrypt` password hashes, signed eight-hour sessions, and private per-user leagues and games.
+- **What I kept or changed:** I approved the Neon Marketplace integration and production secrets, then rejected the organization-style shared password in favor of public account creation. Codex corrected an initial Vercel 404 with an explicit function route and verified production with two temporary accounts, including cross-account access denial, before deleting the test accounts and data.
 - **Commits:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/0460fb3>, <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/e3c72b0>
 
 ## 2. Where the AI got it wrong
