@@ -6,10 +6,12 @@ For Week 2, I connected the React client to an Express API and PostgreSQL databa
 
 ## Live app
 
+- Production app: <https://client-delta-seven-96.vercel.app/>
+- Production API health: <https://hoopstat-api.vercel.app/healthz>
 - GitHub Pages: <https://aegyog.github.io/Basketball-Live-Score-Stats-Tracker/>
 - Repository: <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker>
 
-The public Pages build uses demo mode until an API is deployed and the repository variables are changed. No database credential belongs in a `VITE_` variable.
+The Vercel production build uses the authenticated Express API and a Neon PostgreSQL database. The GitHub Pages build remains a browser-local demo. No database credential belongs in a `VITE_` variable.
 
 ## Features and usage
 
@@ -72,6 +74,8 @@ On macOS or Linux, use `cp .env.example .env`. Edit `server/.env` with your loca
 DATABASE_URL=postgresql://postgres:devpassword@localhost:5432/basketball_tracker
 CORS_ORIGINS=http://localhost:5173
 NODE_ENV=development
+SCORER_PASSWORD=replace-with-a-unique-scorer-password
+SESSION_SECRET=replace-with-at-least-32-random-characters
 ```
 
 Use placeholders in committed documentation and keep real credentials only in the ignored `.env` file or the hosting provider's environment settings.
@@ -116,7 +120,7 @@ VITE_USE_MOCK_API=false
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
-Open <http://localhost:5173>. The dashboard should show one active game and one completed game from PostgreSQL. To run without the server, set `VITE_USE_MOCK_API=true`; the orange demo notice confirms that games are then stored only in that browser.
+Open <http://localhost:5173>, sign in with the configured scorer password, and the dashboard should show one active game and one completed game from PostgreSQL. To run without the server, set `VITE_USE_MOCK_API=true`; the orange demo notice confirms that games are then stored only in that browser.
 
 ### Environment variables
 
@@ -125,6 +129,8 @@ Open <http://localhost:5173>. The dashboard should show one active game and one 
 | `server/.env` | `DATABASE_URL` | `postgresql://postgres:devpassword@localhost:5432/basketball_tracker` | PostgreSQL connection string; secret in production |
 | `server/.env` | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated allowed browser origins |
 | `server/.env` | `NODE_ENV` | `development` | Runtime mode |
+| `server/.env` | `SCORER_PASSWORD` | `replace-with-a-unique-scorer-password` | Shared scorer credential; secret in production |
+| `server/.env` | `SESSION_SECRET` | `replace-with-at-least-32-random-characters` | Signs eight-hour scorer sessions; secret in production |
 | `client/.env` | `VITE_USE_MOCK_API` | `false` | `false` selects the HTTP API; any other value selects demo mode |
 | `client/.env` | `VITE_API_BASE_URL` | `http://localhost:3000` | Express API origin |
 | root `.env` | `POSTGRES_PASSWORD` | `replace-with-a-long-random-value` | Used only by `compose.yml` |
@@ -139,6 +145,8 @@ All request bodies are JSON. Invalid input returns `400`, missing games return `
 | --- | --- | --- |
 | `GET` | `/healthz` | Confirm the Express process is alive |
 | `GET` | `/readyz` | Confirm PostgreSQL is reachable |
+| `POST` | `/api/auth/login` | Exchange the scorer password for an eight-hour signed session token |
+| `GET` | `/api/auth/session` | Validate the current scorer session |
 | `GET` | `/api/games` | List games with teams, players, totals, and plays |
 | `GET` | `/api/games/:id` | Get one complete game |
 | `POST` | `/api/games` | Create a game and both rosters |
@@ -202,15 +210,17 @@ REPORT.md                current project increment report
 - Create-game, record-play, and undo operations keep related writes in short transactions.
 - Values are always passed as query parameters. The only dynamic SQL identifier is selected from an internal five-value stat whitelist.
 - CORS uses an explicit origin allowlist, JSON bodies are limited to 100 KB, Express's identifying header is disabled, and production errors do not expose stack traces.
+- Every `/api` game and league route requires a signed scorer session. Health and readiness endpoints remain public for monitoring.
+- The production database is a pooled Neon PostgreSQL resource connected to the API through encrypted Vercel environment variables.
 - Docker Compose does not publish PostgreSQL to the host network.
 
 ## Known issues and next steps
 
-- The schema and seed scripts were run successfully on local PostgreSQL 18. Live API checks covered health, readiness, game listing, creation, scoring, quarter advancement, undo, and game completion; the database was restored to the documented seed afterward.
-- The API has no login or access gate yet. Do not expose the write endpoints publicly until an access layer such as Cloudflare Zero Trust or an application login protects every route.
-- The local app currently uses the PostgreSQL administrator account. Before public deployment, it should use a separate account with only the permissions the app needs.
+- The production schema and seed ran successfully on Neon. Live verification covered health, readiness, rejected anonymous access, authenticated reads, scoring persistence, audit-trail persistence, and transactional undo; the seeded game was restored afterward.
+- Authentication currently uses one shared scorer password rather than individual accounts or roles. Rotate it in Vercel when access changes.
+- Neon manages the production database credentials. Local development may still use an administrator account and should use a restricted role if it is exposed beyond one machine.
 - GitHub Actions currently references official actions by release tags rather than immutable commit SHAs.
-- GitHub Pages can host only the React client. The Express API and PostgreSQL database need a separate host before the public build can leave demo mode.
+- GitHub Pages remains demo-only because it does not receive the Vercel production variables.
 
 ## AI assistance
 

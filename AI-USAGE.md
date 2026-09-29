@@ -28,6 +28,14 @@ This project was built with AI assistance. This file records what was requested,
 - **What I kept or changed:** I installed and configured PostgreSQL locally, then used Codex to run the database and API checks. The documents now record that the local integration passed while still listing the missing access control and commit links.
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
+### 2026-09-30 - Authenticated production deployment
+
+- **Tool:** OpenAI Codex
+- **What I asked for:** Replace the public demo deployment with the complete database-backed application and explain the production setup afterward.
+- **What it produced:** A shared scorer login with signed eight-hour sessions, protected API routes, Vercel Express routing, a Neon production database, production environment configuration, and deployment documentation.
+- **What I kept or changed:** I approved the Neon Marketplace integration and the two production secrets. Codex corrected an initial Vercel 404 by adding an explicit function route, then verified a temporary scoring write and transactional undo against production without leaving test data behind.
+- **Commits:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/0460fb3>, <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/e3c72b0>
+
 ## 2. Where the AI got it wrong
 
 ### Case 1 - Finishing a game after a failed request
