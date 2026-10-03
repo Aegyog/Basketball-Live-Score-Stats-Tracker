@@ -28,13 +28,29 @@ This project was built with AI assistance. This file records what was requested,
 - **What I kept or changed:** I installed and configured PostgreSQL locally, then used Codex to run the database and API checks. The documents now record that the local integration passed while still listing the missing access control and commit links.
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 
-### 2026-09-30 - Production deployment and individual accounts
+### 2026-09-29 - League library and faster game tracking
 
 - **Tool:** OpenAI Codex
-- **What I asked for:** Replace the public demo deployment with the complete database-backed application and explain the production setup afterward.
-- **What it produced:** Vercel Express routing, a Neon production database, production environment configuration, and an initial shared-password gate. After I clarified that anyone should be able to use the site, Codex replaced that gate with self-service username/password registration, salted `scrypt` password hashes, signed eight-hour sessions, and private per-user leagues and games.
-- **What I kept or changed:** I approved the Neon Marketplace integration and production secrets, then rejected the organization-style shared password in favor of public account creation. Codex corrected an initial Vercel 404 with an explicit function route and verified production with two temporary accounts, including cross-account access denial, before deleting the test accounts and data.
-- **Commits:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/0460fb3>, <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/e3c72b0>
+- **What I asked for:** Add reusable leagues, teams, player names, and jersey numbers, then simplify live scoring so a scorekeeper can record plays with fewer taps.
+- **What it produced:** A league library in React and Express/PostgreSQL, saved-roster game setup, jersey-number validation, direct +1/+2/+3 point controls, one-tap non-scoring statistics, quarter undo, and a fuller play audit trail.
+- **What I kept or changed:** I kept the saved-roster workflow because recurring leagues should not require the same roster to be typed before every game. I also kept manual entry as an alternative and kept historical game rosters as copies so later league edits cannot rewrite old results.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/ba11505>
+
+### 2026-09-30 - Production deployment and initial access control
+
+- **Tool:** OpenAI Codex
+- **What I asked for:** Replace the browser-only public demo with the complete database-backed application and protect write access in production.
+- **What it produced:** A Vercel-hosted Express API, a Neon PostgreSQL database, production environment configuration, signed sessions, and an initial shared-password access gate.
+- **What I kept or changed:** I kept the database-backed Vercel deployment and server-side session checks. When the first deployment returned a Vercel 404, Codex added an explicit function route and rechecked the health endpoint instead of treating deployment success as proof that routing worked.
+- **Commits:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/0460fb3>, <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/e3c72b0>, <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/10cc7ae>
+
+### 2026-09-30 - Public accounts and private user data
+
+- **Tool:** OpenAI Codex
+- **What I asked for:** Replace the organization-style shared password with self-service accounts so anyone can use the application while keeping every user's data private.
+- **What it produced:** Username/password registration and login, salted `scrypt` password hashes, signed eight-hour sessions, ownership columns and queries, authenticated game and league routes, and tests for account validation and password storage.
+- **What I kept or changed:** I rejected the shared-password model because it did not fit a public product. I kept public registration with private per-user workspaces. Production verification used two temporary accounts to confirm cross-account denial, and the temporary accounts and records were removed afterward.
+- **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/4396040>
 
 ## 2. Where the AI got it wrong
 
@@ -70,7 +86,7 @@ This project was built with AI assistance. This file records what was requested,
 
 ### Written by me
 
-No substantial student-authored code is claimed yet. The current Week 1 and Week 2 implementation is heavily AI-assisted. Before final submission, I still need to write, test, and explain a meaningful portion myself and add its exact file and commit link here so the project satisfies the 20% self-authored requirement.
+No substantial student-authored code is claimed yet. The current implementation is heavily AI-assisted. Before final submission, I still need to write, test, and explain a meaningful portion myself and add its exact file and commit link here so the project satisfies the 20% self-authored requirement. I will not relabel AI-written code as my own work.
 
 ### Local setup I completed
 
