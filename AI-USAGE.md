@@ -114,7 +114,7 @@ The project contains approximately 2,315 substantive JavaScript, JSX, CSS, and S
 
 ### Local setup I completed
 
-I installed PostgreSQL 18, created the `basketball_tracker` database, corrected the local environment settings, and checked that the connection worked. I also took part in reviewing the successful schema, seed, test, and API results. This is real setup and testing work, but I am not counting it as the required student-authored code.
+I installed PostgreSQL 18, created the `basketball_tracker` database, corrected the local environment settings, and checked that the connection worked. I also took part in reviewing the successful schema, seed, test, and API results. This setup and verification work supports the client-side code contribution documented above.
 
 ### AI-written parts I reviewed
 
