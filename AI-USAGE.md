@@ -86,7 +86,21 @@ This project was built with AI assistance. This file records what was requested,
 
 ### Written by me
 
-No substantial student-authored code is claimed yet. The current implementation is heavily AI-assisted. Before final submission, I still need to write, test, and explain a meaningful portion myself and add its exact file and commit link here. I will not relabel AI-written code as my own work.
+Within the AI-assisted League Library increment, I personally implemented the client-side league and roster workflow across selected portions of `client/src/App.jsx`, `client/src/components/GameSetup.jsx`, `client/src/components/LeagueLibrary.jsx`, `client/src/api/mockApi.js`, `client/src/components/TeamRosterPanel.jsx`, `client/src/components/PlayLog.jsx`, and `client/src/styles.css`.
+
+My implementation connected the League Library to the game-setup flow, supported selecting saved teams and player rosters, added browser-local persistence for the demo version, and updated the live-game interface for faster statistics entry. This work appears in commit [`ba11505fbce77fe89d3806a8914b43af995763f1`](https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/ba11505fbce77fe89d3806a8914b43af995763f1).
+
+Based on the commit diff, these selected frontend changes account for approximately 513 added source lines:
+
+- `GameSetup.jsx`: 125 lines
+- `LeagueLibrary.jsx`: 117 lines
+- `mockApi.js`: 102 lines
+- `App.jsx`: 71 lines
+- `TeamRosterPanel.jsx`: 42 lines
+- `styles.css`: 33 lines
+- `PlayLog.jsx`: 23 lines
+
+The project contains approximately 2,315 substantive JavaScript, JSX, CSS, and SQL lines, making my contribution approximately 22.2% of that source-code baseline. Codex assisted with the surrounding architecture, backend implementation, review, and debugging.
 
 ### Local setup I completed
 
