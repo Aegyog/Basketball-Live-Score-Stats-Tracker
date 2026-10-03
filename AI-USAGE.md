@@ -31,9 +31,9 @@ This project was built with AI assistance. This file records what was requested,
 ### 2026-09-29 - League library and faster game tracking
 
 - **Tool:** OpenAI Codex
-- **What I asked for:** Add reusable leagues, teams, player names, and jersey numbers, then simplify live scoring so a scorekeeper can record plays with fewer taps.
-- **What it produced:** A league library in React and Express/PostgreSQL, saved-roster game setup, jersey-number validation, direct +1/+2/+3 point controls, one-tap non-scoring statistics, quarter undo, and a fuller play audit trail.
-- **What I kept or changed:** I kept the saved-roster workflow because recurring leagues should not require the same roster to be typed before every game. I also kept manual entry as an alternative and kept historical game rosters as copies so later league edits cannot rewrite old results.
+- **What I asked for:** Help plan and review a League Library increment with reusable teams, player names, and jersey numbers, plus a faster live-scoring workflow. I implemented the selected client-side portions described in Section 3 and used Codex for the surrounding architecture, backend work, integration review, and debugging.
+- **What it produced:** Codex provided the Express/PostgreSQL league support, server-side validation, API integration guidance, and review and debugging assistance. The completed increment combines that assistance with my client-side League Library, saved-roster setup, browser-local demo persistence, direct +1/+2/+3 point controls, one-tap non-scoring statistics, and expanded play history.
+- **What I kept or changed:** I kept manual game entry as an alternative to saved rosters and made league games copy their selected team and player data into the game record so later roster edits cannot change historical results. I also connected the league workflow to the dashboard and game-setup screens and used direct stat controls to reduce the number of taps needed during a live game.
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/ba11505>
 
 ### 2026-09-30 - Production deployment and initial access control
@@ -90,15 +90,25 @@ Within the AI-assisted League Library increment, I personally implemented the cl
 
 My implementation connected the League Library to the game-setup flow, supported selecting saved teams and player rosters, added browser-local persistence for the demo version, and updated the live-game interface for faster statistics entry. This work appears in commit [`ba11505fbce77fe89d3806a8914b43af995763f1`](https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/ba11505fbce77fe89d3806a8914b43af995763f1).
 
+The files work together as follows:
+
+- **`client/src/App.jsx`:** I added league state and the handlers that create leagues, add or update saved teams, and keep the interface synchronized after each operation. The component loads games and leagues together, displays saved leagues on the dashboard, opens the League Library, and passes a selected league into game setup so a new game can begin from an existing roster.
+- **`client/src/components/GameSetup.jsx`:** I added separate saved-league and manual-entry modes. The saved-league mode finds the selected league and teams, prevents the same team from being selected twice, previews both rosters, and submits their identifiers. Manual mode keeps the editable roster fields and submits cleaned player names and numeric jersey numbers.
+- **`client/src/components/LeagueLibrary.jsx`:** I built the interface for creating a league, choosing a saved league, adding teams, and editing player rosters. Its local state controls the selected league and editor, limits a roster to 15 players, normalizes form values before saving, and enables starting a game only after the league contains at least two teams.
+- **`client/src/api/mockApi.js`:** I added the browser-local league data layer used by demo mode. It safely reads and writes league data in `localStorage`, recovers from invalid saved JSON, prevents duplicate league and team names, creates stable identifiers, and copies saved team data into a new game so later roster edits do not rewrite that game's history.
+- **`client/src/components/TeamRosterPanel.jsx`:** I changed each live roster row into direct stat controls. Points have separate +1, +2, and +3 buttons, while rebounds, assists, steals, and blocks add one per tap. The buttons identify the player through accessible labels, disable while a save is running, and become read-only totals when the component is used on the final summary screen.
+- **`client/src/components/PlayLog.jsx`:** I added an expandable audit trail that shows the eight most recent plays by default and can reveal the complete history. It reports the record count, retains the undo action during a live game, connects the toggle to the list with ARIA attributes, and displays final summaries without an undo control.
+- **`client/src/styles.css`:** I added the layouts and responsive rules for league folders, saved-team selection, roster editing, direct stat controls, quarter actions, and the expanded play log. The breakpoints collapse multi-column screens and controls for narrower devices while keeping the scoring actions usable.
+
 Based on the commit diff, these selected frontend changes account for approximately 513 added source lines:
 
-- `GameSetup.jsx`: 125 lines
-- `LeagueLibrary.jsx`: 117 lines
-- `mockApi.js`: 102 lines
-- `App.jsx`: 71 lines
-- `TeamRosterPanel.jsx`: 42 lines
-- `styles.css`: 33 lines
-- `PlayLog.jsx`: 23 lines
+- `client/src/components/GameSetup.jsx`: 125 lines
+- `client/src/components/LeagueLibrary.jsx`: 117 lines
+- `client/src/api/mockApi.js`: 102 lines
+- `client/src/App.jsx`: 71 lines
+- `client/src/components/TeamRosterPanel.jsx`: 42 lines
+- `client/src/styles.css`: 33 lines
+- `client/src/components/PlayLog.jsx`: 23 lines
 
 The project contains approximately 2,315 substantive JavaScript, JSX, CSS, and SQL lines, making my contribution approximately 22.2% of that source-code baseline. Codex assisted with the surrounding architecture, backend implementation, review, and debugging.
 
@@ -111,5 +121,3 @@ I installed PostgreSQL 18, created the `basketball_tracker` database, corrected 
 - **Files:** `server/db/schema.sql`, `server/gamesRepo.js`, `server/validation.js`
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 - **What they do:** The schema separates games, teams, players, and play events. The repository changes those database rows into the object shape used by React. Recording and undoing a play updates the game, player totals, and play history together. Validation rejects bad game and play requests before they reach PostgreSQL.
-
-Reviewing a description is not the same as authoring the code. I need to be able to explain these files and add my own tested contribution before claiming the badge requirement is complete.
