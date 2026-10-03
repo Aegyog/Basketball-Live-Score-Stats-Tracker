@@ -1,5 +1,6 @@
 # Courtside Ledger
 
+[![Built with OpenAI Codex](https://img.shields.io/badge/Built_with-OpenAI_Codex-412991)](AI-USAGE.md)
 
 Courtside Ledger is my basketball live-score and player-statistics tracker for local leagues and barangay tournaments. It keeps the game score, player totals, quarter, and recent plays in one place.
 
