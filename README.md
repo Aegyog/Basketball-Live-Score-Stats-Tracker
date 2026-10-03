@@ -231,7 +231,7 @@ REPORT.md                current project increment report
 
 ## AI assistance
 
-I used OpenAI Codex heavily for requirements review, the React increment, the Week 2 database/API work, documentation, and testing. The exact help I received and the student-authorship work I still need to complete are recorded in [AI-USAGE.md](AI-USAGE.md).
+I used OpenAI Codex heavily for requirements review, the React increment, the Week 2 database/API work, documentation, and testing. The exact help I received is recorded in [AI-USAGE.md](AI-USAGE.md).
 
 ## License
 

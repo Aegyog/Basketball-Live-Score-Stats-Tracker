@@ -86,7 +86,7 @@ This project was built with AI assistance. This file records what was requested,
 
 ### Written by me
 
-No substantial student-authored code is claimed yet. The current implementation is heavily AI-assisted. Before final submission, I still need to write, test, and explain a meaningful portion myself and add its exact file and commit link here so the project satisfies the 20% self-authored requirement. I will not relabel AI-written code as my own work.
+No substantial student-authored code is claimed yet. The current implementation is heavily AI-assisted. Before final submission, I still need to write, test, and explain a meaningful portion myself and add its exact file and commit link here. I will not relabel AI-written code as my own work.
 
 ### Local setup I completed
 
