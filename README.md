@@ -1,8 +1,8 @@
-# Courtside Ledger
+# HoopStat
 
 [![Built with OpenAI Codex](https://img.shields.io/badge/Built_with-OpenAI_Codex-412991)](AI-USAGE.md)
 
-Courtside Ledger is my basketball live-score and player-statistics tracker for local leagues and barangay tournaments. It keeps the game score, player totals, quarter, and recent plays in one place.
+HoopStat (previously Courtside Ledger) is my basketball live-score and player-statistics tracker for local leagues and barangay tournaments. It keeps the game score, player totals, quarter, and recent plays in one place.
 
 For Week 2, I connected the React client to an Express API and PostgreSQL database. The client can also run in a clearly labelled demo mode with `localStorage` when the database is unavailable.
 
@@ -45,7 +45,7 @@ The Vercel production build uses self-service user accounts, an authenticated Ex
 
 Saved league rosters are templates. Starting a game copies the selected names and jersey numbers into that game's own roster, so later edits to the league library do not change historical games.
 
-![Courtside Ledger dashboard](docs/screenshots/dashboard.png)
+![Basketball tracker dashboard](docs/screenshots/dashboard.png)
 
 ## Requirements
 
@@ -142,7 +142,7 @@ All `VITE_` values are public in the built JavaScript. Never place a password, t
 
 ## API
 
-All request bodies are JSON. Invalid input returns `400`, missing games return `404`, invalid state changes return `409`, and unexpected failures return a generic `500` response without a stack trace.
+Request bodies must be JSON objects. Null, arrays, primitive values, and malformed JSON return a controlled `400`; bodies larger than 100 KB return `413`. Invalid input returns `400`, missing games return `404`, invalid state changes return `409`, and unexpected failures return a generic `500` response without a stack trace.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -226,9 +226,19 @@ REPORT.md                current project increment report
 - The production schema migration ran successfully on Neon without deleting the previous sample rows. Those unowned rows are hidden from user accounts.
 - Live verification created two temporary accounts, confirmed that registration and sessions work, confirmed each account can see only its own leagues and games, and removed the temporary accounts and their data afterward.
 - Accounts currently use usernames only. Email verification, password recovery, account deletion, and organization roles are not implemented yet, so users must retain their password.
-- Neon manages the production database credentials. Local development may still use an administrator account and should use a restricted role if it is exposed beyond one machine.
-- GitHub Actions currently references official actions by release tags rather than immutable commit SHAs.
-- GitHub Pages remains demo-only because it does not receive the Vercel production variables.
+- The user created the restricted hoopstat_app role and applied server/db/runtime-permissions.sql. The deployed API uses the separate Production HOOPSTAT_DATABASE_URL secret; health/readiness returned 200 after the switch. Keep the owner account for schema administration. Full signed-in feature and privilege verification remains outstanding.
+- GitHub secret scanning and push protection were enabled on October 5. The Vercel database integration is now production-only; credentials previously propagated to Preview/Development still need owner rotation.
+- Neon Free currently permits connections from any IP with valid credentials. IP allowlists and VPC access are unavailable on this plan, so app-only network reachability is not claimed.
+- The Pages workflow pins each action to an immutable commit SHA.
+- GitHub Pages is intended for demo mode. The latest checked workflow built successfully but skipped deployment because the repository was private at run time; repository visibility is now public. Use the Vercel production link for grading.
+
+## Final submission
+
+The final project, presentation, and AI badge are due **Friday, October 9, 2026, at 23:59 (Asia/Manila)** with no late window. The completed security checklist is in the private class workspace at `project/SECURITY-CHECKLIST.md` and is worth 5 of the final project’s 100 points.
+
+## Asset credits
+
+The HoopStat logo is original artwork created by the project owner, whose authorship was confirmed on October 5, 2026. The dashboard screenshot was captured from the application. The interface uses system fonts.
 
 ## AI assistance
 
@@ -237,3 +247,7 @@ I used OpenAI Codex heavily for requirements review, the React increment, the We
 ## License
 
 [MIT](LICENSE)
+
+### Restricted production database connection
+
+If Vercel's Neon integration manages DATABASE_URL, add a separate sensitive Production variable named HOOPSTAT_DATABASE_URL containing the pooled hoopstat_app connection string. The API prefers this variable and falls back to DATABASE_URL when it is absent. Deploy the updated server code after adding it; redeploying an older build does not include this change. Keep credentials out of Git. For schema or seed commands, use an owner connection and leave HOOPSTAT_DATABASE_URL unset.

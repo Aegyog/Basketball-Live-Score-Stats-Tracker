@@ -3,9 +3,11 @@ import pg from 'pg'
 // Fail at boot with one clear line, rather than with a mystery 500 an hour
 // later. The commonest deployment mistake is setting a variable in .env on your
 // laptop and never setting it in the host's dashboard.
-if (!process.env.DATABASE_URL) {
+const connectionString = process.env.HOOPSTAT_DATABASE_URL || process.env.DATABASE_URL
+
+if (!connectionString) {
   console.error(
-    'DATABASE_URL is not set. Locally: copy .env.example to .env and fill it in. ' +
+    'HOOPSTAT_DATABASE_URL or DATABASE_URL is not set. Locally: copy .env.example to .env and fill it in. ' +
     'On a host: add it in the dashboard, then redeploy.'
   )
   process.exit(1)
@@ -18,11 +20,11 @@ if (!process.env.DATABASE_URL) {
 // student project. If your host publishes a CA certificate, pass it as
 // ssl: { ca: readFileSync('ca.pem') } instead and say so in your journal.
 const isLocal =
-  process.env.DATABASE_URL.includes('localhost') ||
-  process.env.DATABASE_URL.includes('127.0.0.1')
+  connectionString.includes('localhost') ||
+  connectionString.includes('127.0.0.1')
 
 export const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   ssl: isLocal ? false : { rejectUnauthorized: false },
   max: 5,                          // free tiers allow far fewer than you think
   idleTimeoutMillis: 10_000,       // hand connections back quickly

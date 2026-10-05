@@ -87,3 +87,12 @@ test('parseId accepts positive integer strings only', () => {
   assert.match(parseId('0').error, /positive integer/)
   assert.match(parseId('1 OR 1=1').error, /positive integer/)
 })
+
+
+test('all request validators reject non-object bodies without throwing', () => {
+  for (const validate of [validateGame, validateLeague, validateLeagueTeam, validatePlay]) {
+    for (const body of [null, [], 'text', 42, true]) {
+      assert.deepEqual(validate(body).errors, ['Request body must be a JSON object'])
+    }
+  }
+})

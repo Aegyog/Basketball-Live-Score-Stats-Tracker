@@ -1,3 +1,4 @@
+import { isObjectBody } from './requestBody.js'
 const GAME_STATS = new Set(['points', 'rebounds', 'assists', 'steals', 'blocks'])
 
 function validDate(value) {
@@ -31,6 +32,7 @@ export function parseId(value, label = 'id') {
 }
 
 export function validateGame(input = {}) {
+  if (!isObjectBody(input)) return { errors: ['Request body must be a JSON object'], value: {} }
   const errors = []
   const mode = input.mode ?? 'manual'
   const date = typeof input.date === 'string' ? input.date.trim() : ''
@@ -75,6 +77,7 @@ export function validateGame(input = {}) {
 }
 
 export function validateLeague(input = {}) {
+  if (!isObjectBody(input)) return { errors: ['Request body must be a JSON object'], value: {} }
   const errors = []
   const name = typeof input.name === 'string' ? input.name.trim() : ''
   const season = typeof input.season === 'string' ? input.season.trim() : ''
@@ -86,6 +89,7 @@ export function validateLeague(input = {}) {
 }
 
 export function validateLeagueTeam(input = {}) {
+  if (!isObjectBody(input)) return { errors: ['Request body must be a JSON object'], value: {} }
   const errors = []
   const name = typeof input.name === 'string' ? input.name.trim() : ''
   const players = cleanRoster(input.players, 'players', errors)
@@ -96,6 +100,7 @@ export function validateLeagueTeam(input = {}) {
 }
 
 export function validatePlay(input = {}) {
+  if (!isObjectBody(input)) return { errors: ['Request body must be a JSON object'], value: {} }
   const errors = []
   const teamSide = input.teamSide
   const playerId = parseId(input.playerId, 'playerId')

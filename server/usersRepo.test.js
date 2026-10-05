@@ -21,3 +21,10 @@ test('password hashes are salted and verifiable', async () => {
   assert.equal(await verifyPassword('correct horse battery staple', first), true)
   assert.equal(await verifyPassword('wrong password', first), false)
 })
+
+
+test('credential validation rejects non-object bodies without throwing', () => {
+  for (const body of [null, [], 'text', 42, true]) {
+    assert.deepEqual(validateCredentials(body).errors, ['Request body must be a JSON object'])
+  }
+})

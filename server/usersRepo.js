@@ -1,3 +1,4 @@
+import { isObjectBody } from './requestBody.js'
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 
@@ -12,6 +13,7 @@ function problem(status, message) {
 }
 
 export function validateCredentials(input = {}) {
+  if (!isObjectBody(input)) return { errors: ['Request body must be a JSON object'], value: {} }
   const username = typeof input.username === 'string' ? input.username.trim().toLowerCase() : ''
   const password = typeof input.password === 'string' ? input.password : ''
   const errors = []

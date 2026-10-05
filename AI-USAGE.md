@@ -100,17 +100,17 @@ The files work together as follows:
 - **`client/src/components/PlayLog.jsx`:** I added an expandable audit trail that shows the eight most recent plays by default and can reveal the complete history. It reports the record count, retains the undo action during a live game, connects the toggle to the list with ARIA attributes, and displays final summaries without an undo control.
 - **`client/src/styles.css`:** I added the layouts and responsive rules for league folders, saved-team selection, roster editing, direct stat controls, quarter actions, and the expanded play log. The breakpoints collapse multi-column screens and controls for narrower devices while keeping the scoring actions usable.
 
-Based on the commit diff, these selected frontend changes account for approximately 513 added source lines:
+Recounted on October 5, 2026 using nonblank source lines, excluding full-line comments and test files. In commit `ba11505`, the selected files contain 474 added lines under this rule:
 
-- `client/src/components/GameSetup.jsx`: 125 lines
-- `client/src/components/LeagueLibrary.jsx`: 117 lines
-- `client/src/api/mockApi.js`: 102 lines
-- `client/src/App.jsx`: 71 lines
-- `client/src/components/TeamRosterPanel.jsx`: 42 lines
-- `client/src/styles.css`: 33 lines
-- `client/src/components/PlayLog.jsx`: 23 lines
+- `client/src/components/GameSetup.jsx`: 115
+- `client/src/components/LeagueLibrary.jsx`: 105
+- `client/src/api/mockApi.js`: 93
+- `client/src/App.jsx`: 67
+- `client/src/components/TeamRosterPanel.jsx`: 41
+- `client/src/styles.css`: 32
+- `client/src/components/PlayLog.jsx`: 21
 
-The project contains approximately 2,315 substantive JavaScript, JSX, CSS, and SQL lines, making my contribution approximately 22.2% of that source-code baseline. Codex assisted with the surrounding architecture, backend implementation, review, and debugging.
+The current application source in `client/src/` and `server/` contains 2,246 lines under the same rule, including the October 5 validation fixes and runtime-permissions SQL. The selected additions are therefore approximately **21.1%** of this baseline (474 / 2,246). This is a size estimate, not independent proof of authorship or a claim that every added line survives unchanged. My claim applies only to the personally implemented portions described above; I must be able to explain those portions and distinguish Codex assistance. Recalculate if the final code changes.
 
 ### Local setup I completed
 
@@ -121,3 +121,15 @@ I installed PostgreSQL 18, created the `basketball_tracker` database, corrected 
 - **Files:** `server/db/schema.sql`, `server/gamesRepo.js`, `server/validation.js`
 - **Commit:** <https://github.com/Aegyog/Basketball-Live-Score-Stats-Tracker/commit/195930d0b970c63b8d0fce0aa5fd2aba16eb9189>
 - **What they do:** The schema separates games, teams, players, and play events. The repository changes those database rows into the object shape used by React. Recording and undoing a play updates the game, player totals, and play history together. Validation rejects bad game and play requests before they reach PostgreSQL.
+
+## October 5, 2026 — finals alignment update
+
+- **Tool:** OpenAI Codex.
+- **Request:** Bring the tracker and submission documentation into line with the revised finals requirements.
+- **Work produced:** Object-body validation and safe parser errors, regression tests, commit-pinned workflow actions, a base-path-safe logo URL, updated submission documentation, and a consistent contribution recount.
+- **Review:** The server suite passes 47 tests and the client production build passes. This work is AI-assisted and is excluded from the claimed student contribution.
+- **Commit:** Pending. The user has now authorized committing and pushing these changes. The hardening commit link will be added after it is created.
+
+### October 5 security follow-up (local record)
+
+GitHub secret scanning and push protection were enabled, the database integration was limited to Production, and local Git email settings now use a GitHub noreply address. The owner confirmed authorship of the HoopStat logo. Codex prepared runtime-permissions.sql and the HOOPSTAT_DATABASE_URL override. I created the restricted hoopstat_app login, applied its permissions, and saved its connection string privately in Vercel. Codex deployed the updated API; health and database readiness returned 200, signed-out games returned 401, and malformed JSON returned a safe 400. Full signed-in feature and direct privilege verification remains outstanding. Neon Free has no IP allowlist/VPC option. The security follow-up is AI-assisted and is excluded from the personally authored contribution. The user authorized committing and pushing; the implementation commit link will be recorded after creation.

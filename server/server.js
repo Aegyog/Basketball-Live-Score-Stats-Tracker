@@ -1,4 +1,5 @@
 import express from 'express'
+import { requireObjectBody } from './requestBody.js'
 import cors from 'cors'
 import { pool } from './db/pool.js'
 import * as games from './gamesRepo.js'
@@ -16,6 +17,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
 app.disable('x-powered-by')
 app.use(cors({ origin: allowedOrigins, allowedHeaders: ['Content-Type', 'Authorization'] }))
 app.use(express.json({ limit: '100kb' }))
+app.use('/api', requireObjectBody)
 
 app.get('/healthz', (request, response) => response.json({ ok: true }))
 
@@ -143,6 +145,12 @@ app.patch('/api/games/:id/finish', async (request, response, next) => {
 app.use((request, response) => response.status(404).json({ error: 'No such route' }))
 
 app.use((error, request, response, next) => {
+  if (error.type === 'entity.parse.failed') {
+    return response.status(400).json({ error: 'Request body must contain valid JSON' })
+  }
+  if (error.type === 'entity.too.large') {
+    return response.status(413).json({ error: 'Request body exceeds the 100 KB limit' })
+  }
   const status = Number.isInteger(error.status) ? error.status : 500
   if (status >= 500) console.error(error)
   response.status(status).json({ error: status >= 500 ? 'Something went wrong on the server' : error.message })

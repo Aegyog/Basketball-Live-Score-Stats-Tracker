@@ -4,10 +4,10 @@ export default function AppHeader({ view, onNavigate, onSignOut, user }) {
       <button
         className="brand"
         type="button"
-        aria-label="Courtside Ledger dashboard"
+        aria-label="HoopStat dashboard"
         onClick={() => onNavigate('dashboard')}
       >
-        <img className="brand-logo" src="/hoopstat_logo_transparent.png" alt="" />
+        <img className="brand-logo" src={`${import.meta.env.BASE_URL}hoopstat_logo_transparent.png`} alt="" />
       </button>
       <nav aria-label="Primary navigation">
         <button className={view === 'dashboard' ? 'nav-link active' : 'nav-link'} onClick={() => onNavigate('dashboard')}>Dashboard</button>
